@@ -12,6 +12,7 @@ import {
 import { GREEK_RELICS } from '../data/relics';
 import { PlayerRole } from '../systems/SaveManager';
 import { sfx, bgm } from '../audio/sound';
+import { TouchControls } from '../ui/TouchControls';
 
 const ITEM_ICON_FILES: Record<GreekItemId, string> = {
   oliven: 'oliven.png',
@@ -137,6 +138,7 @@ export class UIScene extends Phaser.Scene {
   create(): void {
     this.root = document.getElementById('ui-root')!;
     this.buildDOM();
+    state.touch = new TouchControls(this) as unknown as typeof state.touch;
 
     const dismissRotateBtn = document.getElementById('btn-dismiss-rotate');
     if (dismissRotateBtn) {
