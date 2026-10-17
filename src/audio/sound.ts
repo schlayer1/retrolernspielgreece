@@ -150,18 +150,18 @@ class BackgroundMusic {
 
   playChapter(ch: number): void {
     const tracks: Record<number, string> = {
-      1: 'assets/audio/bgm/ch1_dunes.ogg',
-      2: 'assets/audio/bgm/ch6_oasis.ogg',
-      3: 'assets/audio/bgm/ch5_sunblade.ogg',
-      4: 'assets/audio/bgm/ch3_whispers.ogg',
-      5: 'assets/audio/bgm/ch4_canyon.ogg',
-      6: 'assets/audio/bgm/ch2_scorchlight.ogg',
-      7: 'assets/audio/bgm/ch5_sunblade.ogg',
-      8: 'assets/audio/bgm/ch3_whispers.ogg',
-      9: 'assets/audio/bgm/ch2_scorchlight.ogg',
-      10: 'assets/audio/bgm/ch6_oasis.ogg',
+      1: 'assets/audio/bgm/bgm_warmth.mp3',
+      2: 'assets/audio/bgm/bgm_patterns.mp3',
+      3: 'assets/audio/bgm/bgm_desert_battle.mp3',
+      4: 'assets/audio/bgm/bgm_heart.mp3',
+      5: 'assets/audio/bgm/bgm_oracle.mp3',
+      6: 'assets/audio/bgm/bgm_desert_epic.mp3',
+      7: 'assets/audio/bgm/bgm_desert_canyon.mp3',
+      8: 'assets/audio/bgm/bgm_mist.mp3',
+      9: 'assets/audio/bgm/bgm_desert_dunes.mp3',
+      10: 'assets/audio/bgm/bgm_patterns.mp3',
     };
-    const track = tracks[ch] || 'assets/audio/bgm/ch1_dunes.ogg';
+    const track = tracks[ch] || 'assets/audio/bgm/bgm_warmth.mp3';
     this.play(track, 0.32);
   }
 
