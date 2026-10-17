@@ -8,11 +8,13 @@ export interface LexiconEntry {
 }
 
 export interface EpochComparisonRow {
-  topic: string;
-  stoneage: string;
-  egypt: string;
-  greece: string;
+  dimension: string;
+  archaisch: string;
+  klassisch: string;
+  hellenismus: string;
 }
+
+export type GreekPhaseComparisonRow = EpochComparisonRow;
 
 export interface ChapterDef {
   id: number;
@@ -82,40 +84,34 @@ export const HIGHLIGHT_TERMS: string[] = [
 
 export const EPOCH_COMPARISON: EpochComparisonRow[] = [
   {
-    topic: 'Siedlung & Staatsform',
-    stoneage: 'Kleine Sippendörfer mit Langhäusern ohne zentrale Verwaltung',
-    egypt: 'Einheitlicher Zentralstaat entlang des Nils unter einem göttlichen Pharao',
-    greece: 'Hunderte unabhängige Stadtstaaten (Poleis) durch Gebirge & Inseln getrennt',
+    dimension: '1. Epoche, Phase & Zeitspanne',
+    archaisch: 'Frühzeit & Archaische Epoche (~800–500 v. Chr.): Geburt der Polis, Aufbruch der Seefahrer und Große Kolonisation im Mittelmeer.',
+    klassisch: 'Klassische Epoche & Blütezeit (~500–336 v. Chr.): Abwehr der Perserkriege, Attische Demokratie, Parthenon-Tempel, Theater & Philosophie.',
+    hellenismus: 'Zeitalter des Hellenismus (~336–30 v. Chr.): Alexanders Weltreich, Großmetropole Alexandria und Aufteilung in Diadochen-Königreiche.',
   },
   {
-    topic: 'Ernährung & Wirtschaft',
-    stoneage: 'Jagd, Sammeln, erster Regenfeldbau und Tausch in der Sippe',
-    egypt: 'Flussbewässerung (Schaduf) mit Nilschlamm, Tauschhandel ohne Münzen',
-    greece: 'Olivenöl, Wein, Gerste, Fischfang, Seehandel & geprägte Silbermünzen (Drachmen)',
+    dimension: '2. Siedlung & Wohnform',
+    archaisch: 'Dörfliche Burgsiedlungen mit ersten Bruchsteinhäusern rund um die Akropolis (Schutzburg) sowie überseeische Pflanzstädte (Apoikien).',
+    klassisch: 'Monumentale Stadtstaaten (Poleis) aus weißem Marmor mit Agora (Marktplatz), Pnyx (Rednerbühne), Gymnasion und Dionysos-Theater.',
+    hellenismus: 'Schachbrettartig geplante Weltmetropolen (wie Alexandria) mit breiten Prachtstraßen, Palastvierteln und dem 100 m hohen Pharos-Leuchtturm.',
   },
   {
-    topic: 'Herrschaft & Mitbestimmung',
-    stoneage: 'Entscheidungen durch Sippenälteste und erfahrene Jäger',
-    egypt: 'Absolute Monarchie (Gottkönig Pharao & Wesir), Untertanen ohne Stimmrecht',
-    greece: 'Vielfalt: Militärstaat in Sparta, erste Demokratie der Bürger in Athen (Ekklesia)',
+    dimension: '3. Ernährung & Wirtschaft / Wasser',
+    archaisch: 'Mittelmeer-Trias: Karge Gerste, Olivenhaine und Weinberge; Ziegenkäse; Zisternen-Wasser und Tauschhandel in Tonamphoren.',
+    klassisch: 'Ausgedehnter Ägäis-Seehandel mit befestigtem Kriegshafen (Piräus); Silberbergbau von Laureion und geprägte Eulen-Drachmen.',
+    hellenismus: 'Kontinentaler Welthandel über Karawanen und Großschiffe bis nach Babylon, Ägypten und Indien; Kornkammern und Nil-Handel.',
   },
   {
-    topic: 'Schrift & Wissenschaft',
-    stoneage: 'Keine Schrift (mündliche Überlieferung und Höhlenmalerei)',
-    egypt: 'Über 700 komplizierte Hieroglyphen (nur für ausgebildete Schreiber)',
-    greece: 'Einfaches 24-Buchstaben-Alphabet (mit Vokalen!), Philosophie, Theater & Mathematik',
+    dimension: '4. Werkzeuge, Technik & Monumente',
+    archaisch: 'Eiserne Pflugscharen, handbetriebene Hebel-Olivenpressen, schwarzfigurige Vasen und frühe dorische Kalksteintempel.',
+    klassisch: 'Dreirangige Kriegsschiffe (Triremen mit Rammsporn), Hopliten-Rüstung (Aspis, Dory), Parthenon-Tempelbau und vollendete Bildhauerei.',
+    hellenismus: 'Wissenschaftliches Ingenieurwesen, 6-Meter-Sarissa-Lanzen, Katapulte, Große Bibliothek von Alexandria und Antikythera-Mechanismus.',
   },
   {
-    topic: 'Glaube & Kultur',
-    stoneage: 'Naturgeister, Ahnenkult, Fruchtbarkeitsidole und Megalithgräber',
-    egypt: 'Tierköpfige Götter, Totengericht (Maat), Mumifizierung & Pyramidengräber',
-    greece: '12 menschengestaltige Götter auf dem Olymp, Orakel von Delphi & Olympische Spiele',
-  },
-  {
-    topic: 'Militär & Weltreich',
-    stoneage: 'Speere, Steinbeile und Pfeil & Bogen zur Jagd',
-    egypt: 'Streitwagen und Bogenschützen zur Sicherung der Nilgrenzen',
-    greece: 'Hopliten-Phalanx, Rammsporn-Triremen & Alexanders Weltreich bis nach Indien',
+    dimension: '5. Gesellschaft, Schrift & Herrschaft',
+    archaisch: 'Vorherrschaft adeliger Großgrundbesitzer (Aristokratie); frühe Gesetzgeber (Solon) und 24-Buchstaben-Alphabet mit Vokalen.',
+    klassisch: 'Erste Demokratie der Bürger in Athen (Ekklesia, Scherbengericht/Ostrakismos) vs. strenger Kriegerstaat in Sparta (Agoge & Heloten).',
+    hellenismus: 'Gottähnliche Diadochen-Monarchien (Ptolemäer, Seleukiden); Griechisch (Koine) wird internationale Weltsprache von Kultur & Handel.',
   },
 ];
 

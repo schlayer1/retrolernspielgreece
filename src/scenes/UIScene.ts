@@ -307,9 +307,6 @@ export class UIScene extends Phaser.Scene {
             <button class="retro-btn" id="btn-cert" title="Hefter-Urkunde drucken (U)">
               🎓 Urkunde <span class="key-badge">U</span>
             </button>
-            <button class="retro-btn" id="btn-portal" title="Epochen-Portal (Zeitreise)">
-              🏛️ Zeitportal
-            </button>
             <button class="retro-btn" id="btn-mute" title="Ton an/aus (M)">
               🔊 <span class="key-badge">M</span>
             </button>
@@ -365,7 +362,6 @@ export class UIScene extends Phaser.Scene {
     document.getElementById('btn-lex')!.onclick = () => this.openLexicon();
     document.getElementById('btn-time')!.onclick = () => this.openTimeline();
     document.getElementById('btn-cert')!.onclick = () => this.openCertificate();
-    document.getElementById('btn-portal')!.onclick = () => this.openEpochPortal(false);
     document.getElementById('btn-pause')!.onclick = () => this.openPause();
     document.getElementById('btn-mobile-menu')!.onclick = () => this.openPause();
 
@@ -405,6 +401,20 @@ export class UIScene extends Phaser.Scene {
 
   private cleanTitle(t: string): string {
     return t.replace(/^Kapitel\s+\d+\s*:\s*/i, '');
+  }
+
+  private speakText(text: string): void {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
+      this.showToast('Sprachausgabe wird von diesem Browser nicht unterstützt.');
+      return;
+    }
+    window.speechSynthesis.cancel();
+    const clean = text.replace(/<[^>]+>/g, '').trim();
+    const utter = new SpeechSynthesisUtterance(clean);
+    utter.lang = 'de-DE';
+    utter.rate = 0.95;
+    window.speechSynthesis.speak(utter);
+    this.showToast('🔊 Liest Merksatz vor…');
   }
 
   public refreshHUD(): void {
@@ -1555,30 +1565,35 @@ export class UIScene extends Phaser.Scene {
     this.modalBackdrop.classList.add('open');
   }
 
-  // ---------------- Epochen-Vergleich & 10-Kapitel-Zeitleiste (Z) ----------------
+  // ---------------- Epochen- & Phasen-Vergleichstabelle (Taste Z) ----------------
   public openTimeline(): void {
     this.activeModal = 'timeline';
     state.modal = true;
     this.modalCard.classList.remove('dark');
     sfx.click();
 
+    // Ermitteln der aktiven Entwicklungsphase für visuelle Hervorhebung
+    const isArchaisch = state.chapter <= 3;
+    const isKlassisch = state.chapter >= 4 && state.chapter <= 8;
+    const isHellenismus = state.chapter >= 9;
+
     this.modalCard.innerHTML = `
       <div class="modal-header">
-        <h2 class="modal-title">⏳ Epochen-Vergleich & 10-Kapitel-Zeitleiste (Steinzeit · Ägypten · Griechenland)</h2>
+        <h2 class="modal-title">⏳ Griechischer Phasen-Vergleich & 10-Kapitel-Zeitleiste</h2>
         <button class="retro-btn" id="time-close-btn">Schließen ✕</button>
       </div>
       <div class="modal-body">
         <div style="margin-bottom:14px;">
           <div style="font-weight:800;font-size:14px;color:#5a2d0c;margin-bottom:6px;">
-            🧭 Direkt zu einem der 10 Griechenland-Kapitel springen:
+            🧭 Direkt zu einem der 10 Griechenland-Kapitel springen (Unterrichts-Direkteinstieg):
           </div>
           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:6px;">
             ${Object.values(CHAPTERS)
               .map(
                 (c) => `
                 <button class="role-card ${state.chapter === c.id ? 'active' : ''}" data-jump-ch="${c.id}" style="padding:6px 8px;">
-                  <div style="font-weight:900;font-size:12px;color:#2a1d10">K${c.id}: ${c.title}</div>
-                  <div style="font-size:10.5px;color:#6b533b">${c.period}</div>
+                  <div style="font-weight:900;font-size:12px;color:#2a1d10">K${c.id}: ${this.cleanTitle(c.title)}</div>
+                  <div style="font-size:10.5px;color:#6b533b">${c.epoch} (${c.period})</div>
                 </button>
               `
               )
@@ -1586,32 +1601,65 @@ export class UIScene extends Phaser.Scene {
           </div>
         </div>
 
+        <div style="margin-bottom:8px;font-weight:800;font-size:13.5px;color:#5a2d0c;">
+          📊 Phasen-Vergleich nach den 5 didaktischen Dimensionen:
+        </div>
         <table class="epoch-table">
           <thead>
             <tr>
-              <th>Kategorie</th>
-              <th>🪨 Steinzeit</th>
-              <th>🏺 Altes Ägypten (Nil)</th>
-              <th>🏛️ Antikes Griechenland (Hellas)</th>
+              <th style="width:20%">Dimension</th>
+              <th style="width:26%" class="${isArchaisch ? 'current-era' : ''}">🏛️ Frühzeit & Archaisch (~800–500 v. Chr.) ${isArchaisch ? '★ (Aktiv)' : ''}</th>
+              <th style="width:27%" class="${isKlassisch ? 'current-era' : ''}">🦉 Klassische Epoche (~500–336 v. Chr.) ${isKlassisch ? '★ (Aktiv)' : ''}</th>
+              <th style="width:27%" class="${isHellenismus ? 'current-era' : ''}">👑 Hellenismus & Diadochen (~336–30 v. Chr.) ${isHellenismus ? '★ (Aktiv)' : ''}</th>
             </tr>
           </thead>
           <tbody>
             ${EPOCH_COMPARISON.map(
               (row) => `
               <tr>
-                <td><strong>${row.topic}</strong></td>
-                <td>${highlightTerms(row.stoneage)}</td>
-                <td>${highlightTerms(row.egypt)}</td>
-                <td style="background:#fef9c3"><strong>${highlightTerms(row.greece)}</strong></td>
+                <td><strong>${highlightTerms(row.dimension)}</strong></td>
+                <td class="${isArchaisch ? 'current-era' : ''}">${highlightTerms(row.archaisch)}</td>
+                <td class="${isKlassisch ? 'current-era' : ''}">${highlightTerms(row.klassisch)}</td>
+                <td class="${isHellenismus ? 'current-era' : ''}">${highlightTerms(row.hellenismus)}</td>
               </tr>
             `
             ).join('')}
           </tbody>
         </table>
+
+        <!-- Didaktische Hefter-Kernaussagen der 10 Kapitel mit Kopieren & Vorlesen -->
+        <div style="margin-top:18px;">
+          <div style="font-weight:800;font-size:14px;color:#5a2d0c;margin-bottom:8px;">
+            📜 Die 10 didaktischen Kernaussagen für deinen Geschichtshefter (mit 1-Klick-Kopieren & Vorlesefunktion):
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:8px;">
+            ${Object.values(CHAPTERS).map((ch) => `
+              <div style="background:#fffdf7;border:2px solid #c9ab78;border-radius:8px;padding:9px 11px;display:flex;flex-direction:column;justify-content:space-between;gap:6px;">
+                <div>
+                  <div style="font-size:11.5px;font-weight:800;color:#b45309;">
+                    Kapitel ${ch.id}: ${this.cleanTitle(ch.title)} (${ch.period})
+                  </div>
+                  <div style="font-size:12.5px;color:#2a1d10;line-height:1.45;margin-top:3px;">
+                    ${highlightTerms(ch.summary)}
+                  </div>
+                </div>
+                <div style="display:flex;justify-content:flex-end;gap:6px;margin-top:4px;border-top:1px solid #ebd9b8;padding-top:6px;">
+                  <button class="retro-btn btn-copy-summary" data-text="${encodeURIComponent(ch.summary)}" style="padding:3px 8px;font-size:11px;">
+                    📋 Kopieren
+                  </button>
+                  <button class="retro-btn btn-speak-summary" data-text="${encodeURIComponent(ch.summary)}" style="padding:3px 8px;font-size:11px;">
+                    🔊 Vorlesen
+                  </button>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
       </div>
     `;
 
     document.getElementById('time-close-btn')!.onclick = () => this.closeModal();
+
     this.modalCard.querySelectorAll('[data-jump-ch]').forEach((btn) => {
       btn.addEventListener('click', () => {
         const targetCh = parseInt((btn as HTMLElement).dataset.jumpCh!, 10);
@@ -1619,109 +1667,172 @@ export class UIScene extends Phaser.Scene {
         bgm.playChapter(targetCh);
         this.closeModal();
         const chDef = CHAPTERS[targetCh];
-        this.showToast(`⏳ Gewechselt zu Kapitel ${chDef.id}: ${chDef.title}`);
+        this.showToast(`⏳ Gewechselt zu Kapitel ${chDef.id}: ${this.cleanTitle(chDef.title)}`);
+      });
+    });
+
+    this.modalCard.querySelectorAll('.btn-copy-summary').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const txt = decodeURIComponent((btn as HTMLElement).dataset.text || '');
+        navigator.clipboard?.writeText(txt);
+        this.showToast('📋 Merksatz in die Zwischenablage kopiert!');
+      });
+    });
+
+    this.modalCard.querySelectorAll('.btn-speak-summary').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const txt = decodeURIComponent((btn as HTMLElement).dataset.text || '');
+        this.speakText(txt);
       });
     });
 
     this.modalBackdrop.classList.add('open');
   }
 
-  // ---------------- Standardisierter 7-Kachel-Pausebildschirm (P / ESC) ----------------
+  // ---------------- Standardisierter 7-Kachel-Referenz-Pausebildschirm (Skill 5.4, Taste P) ----------------
   public openPause(): void {
     this.activeModal = 'pause';
     state.modal = true;
     this.modalCard.classList.remove('dark');
     sfx.click();
 
-    const c = (k: string) => state.counts[k] ?? 0;
     const roleDef = GREEK_ROLES[state.playerRole] ?? GREEK_ROLES.sailor;
     const code = state.exportCode();
     const lexCount = Object.keys(LEXICON).length;
+    const curCh = CHAPTERS[state.chapter] ?? CHAPTERS[1];
+    const curQuest =
+      curCh.quests[Math.min(state.quest, curCh.quests.length - 1)] ?? curCh.quests[0] ?? '';
+
+    // Tagesphase gemäß state.dayTime
+    const phaseName =
+      state.dayTime < 0.2
+        ? '🌅 Morgengrauen'
+        : state.dayTime < 0.7
+        ? '☀️ Tag'
+        : state.dayTime < 0.85
+        ? '🌆 Abendrot'
+        : '🌙 Nacht';
+
+    const bgmInfo = bgm.getCurrentTrackInfo(state.chapter);
 
     this.modalCard.innerHTML = `
       <div class="modal-header">
         <h2 class="modal-title">⏸️ Spielpause, Statistik & Klassenzimmer-Speichercode</h2>
-        <button class="retro-btn" id="pause-resume-btn">▶ Weiterspielen</button>
+        <button class="retro-btn" id="pause-resume-btn" style="background:#15803d;border-color:#86efac;color:#fff;">▶ Weiterspielen</button>
       </div>
       <div class="modal-body">
-        <!-- Mobile & Desktop Schnellzugriff-Leiste -->
-        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;padding-bottom:10px;border-bottom:2px solid #e6d5b8;">
-          <button class="retro-btn" id="pause-open-bag">🎒 Rucksack</button>
-          <button class="retro-btn" id="pause-open-craft">⚒️ Handwerk</button>
-          <button class="retro-btn" id="pause-open-build">🏛️ Bauen</button>
-          <button class="retro-btn" id="pause-open-trade">⚖️ Seehandel</button>
-          <button class="retro-btn" id="pause-open-lex">📖 Lexikon</button>
-          <button class="retro-btn" id="pause-open-time">⏳ 10 Kapitel & Epochen</button>
-          <button class="retro-btn" id="pause-open-cert">🎓 Urkunde</button>
+        <!-- 1. Charakter-Header gemäß Skill 5.4 Punkt 1 -->
+        <div style="background:#fffdf7;border:2px solid #c9ab78;border-radius:10px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <div style="font-size:32px;background:#fef3c7;border:2px solid #d97706;border-radius:50%;width:50px;height:50px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              ${state.playerGender === 'female' ? '👩🏻' : '🧔‍♂️'}
+            </div>
+            <div>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <span style="font-size:17px;font-weight:900;color:#2a1d10;">${state.playerName}</span>
+                <span class="role-badge" style="font-size:11px;">${roleDef.icon} ${roleDef.name}</span>
+              </div>
+              <div style="font-size:12.5px;color:#5a2d0c;font-weight:800;margin-top:2px;">
+                ${state.epochRankTitle()}
+              </div>
+              <div style="font-size:12px;color:#475569;margin-top:1px;">
+                <strong>Aktuelle Mission:</strong> Kapitel ${state.chapter}/10 (${this.cleanTitle(curCh.title)}) – <em>${curQuest}</em>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
+            <span style="background:#15803d;color:#ffffff;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:800;display:inline-flex;align-items:center;gap:4px;">
+              💾 Automatisch gesichert
+            </span>
+            <span style="background:#2a1d10;color:#fde68a;border:1px solid #e8c170;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:700;">
+              ⏸️ Zeit, Hunger & Schutz sind angehalten
+            </span>
+          </div>
         </div>
 
-        <!-- 7-Kachel-Dashboard -->
+        <!-- 2. Die exakt 7 Kern-Statistiken gemäß Skill 5.4 Punkt 2 -->
         <div class="stats-grid">
+          <!-- Kachel 1: Rolle & Spezialboni -->
           <div class="stat-tile">
-            <div class="stat-icon">🏛️</div>
+            <div class="stat-icon">${roleDef.icon}</div>
             <div>
-              <div class="stat-val">${state.playerName} (${roleDef.name})</div>
-              <div class="stat-lbl">Kapitel ${state.chapter}/10 · ${state.epochRankTitle()}</div>
+              <div class="stat-val">${roleDef.name}</div>
+              <div class="stat-lbl">${roleDef.perk}</div>
             </div>
           </div>
+
+          <!-- Kachel 2: Gespielte Abenteuerzeit -->
           <div class="stat-tile">
-            <div class="stat-icon">🫒</div>
+            <div class="stat-icon">⏱️</div>
             <div>
-              <div class="stat-val">${c('oliven_picked')} Oliven · ${c('harvested_gerste')} Gerste</div>
-              <div class="stat-lbl">Ernte & Olivenhaine</div>
+              <div class="stat-val">${state.formatPlayTime()}</div>
+              <div class="stat-lbl">Gespielte Netto-Abenteuerzeit</div>
             </div>
           </div>
+
+          <!-- Kachel 3: Überlebte Tage & Tagesphase -->
           <div class="stat-tile">
-            <div class="stat-icon">⛏️</div>
+            <div class="stat-icon">🌅</div>
             <div>
-              <div class="stat-val">${c('kalkstein_mined') + c('marble_mined')} Stein · ${c('holz_chopped')} Holz</div>
-              <div class="stat-lbl">Steinbruch & Holzfällerei</div>
+              <div class="stat-val">Tag ${state.daysSurvived} · ${phaseName}</div>
+              <div class="stat-lbl">Überlebte Tage & Tageszeit</div>
             </div>
           </div>
+
+          <!-- Kachel 4: Zu Fuß zurückgelegte Strecke -->
+          <div class="stat-tile">
+            <div class="stat-icon">🧭</div>
+            <div>
+              <div class="stat-val">${Math.round(state.distanceMeters)} Meter</div>
+              <div class="stat-lbl">Zu Fuß in Hellas zurückgelegt</div>
+            </div>
+          </div>
+
+          <!-- Kachel 5: Gegenstände & Ernten gesamt -->
+          <div class="stat-tile">
+            <div class="stat-icon">📦</div>
+            <div>
+              <div class="stat-val">${state.totalItemsCollected()} Güter & Ernten</div>
+              <div class="stat-lbl">Gesammelte & gefertigte Ressourcen</div>
+            </div>
+          </div>
+
+          <!-- Kachel 6: Errichtete Siedlungsbauwerke -->
           <div class="stat-tile">
             <div class="stat-icon">🏛️</div>
             <div>
               <div class="stat-val">${state.buildings.length} / ${BUILDINGS.length} Bauwerke</div>
-              <div class="stat-lbl">${state.totalItemsCollected()} Aktionen gemeistert</div>
+              <div class="stat-lbl">Polis-Architektur vollendet</div>
             </div>
           </div>
-          <div class="stat-tile">
-            <div class="stat-icon">🐐</div>
-            <div>
-              <div class="stat-val">${state.goatTamed ? 'Ziege gezähmt' : 'Wildtiere aktiv'}</div>
-              <div class="stat-lbl">${c('caught_fish')} Fische · ${c('wolle_gathered')} Wolle</div>
-            </div>
-          </div>
-          <div class="stat-tile">
-            <div class="stat-icon">🏺</div>
-            <div>
-              <div class="stat-val">${state.relicsFound.length} / 5 Relikte</div>
-              <div class="stat-lbl">Archäologie-Sammlung</div>
-            </div>
-          </div>
+
+          <!-- Kachel 7: Entdecktes Geschichtswissen -->
           <div class="stat-tile">
             <div class="stat-icon">🧠</div>
             <div>
-              <div class="stat-val">${state.knowledge}% Geschichtswissen</div>
-              <div class="stat-lbl">${state.lexicon.length}/${lexCount} Lexikon-Begriffe</div>
+              <div class="stat-val">${state.lexicon.length} / ${lexCount} (${state.knowledge}%)</div>
+              <div class="stat-lbl">Freigeschaltete Lexikon-Begriffe</div>
             </div>
           </div>
         </div>
 
-        <!-- Archäologie-Relikte Übersicht -->
-        <div style="margin-top:10px;">
+        <!-- 3. Archäologie- & Relikte-Leiste (5 Funde) gemäß Skill 5.4 Punkt 3 -->
+        <div style="margin-top:12px;">
           <div style="font-size:13px;font-weight:800;color:#5a2d0c;margin-bottom:4px;">
-            🏺 Deine 5 Archäologie-Relikte des Antiken Griechenlands:
+            🏺 Archäologie-Sammlung: Die 5 Leit-Relikte des Antiken Griechenlands
           </div>
           <div class="relic-grid">
             ${Object.values(GREEK_RELICS)
               .map((r) => {
-                const found = state.relicsFound.includes(r.id);
+                const isAnswered = state.relicQuizAnswered.includes(r.id);
+                const isFound = state.relicsFound.includes(r.id);
                 return `
-                  <div class="relic-card ${found ? 'found' : 'locked'}">
+                  <div class="relic-card ${isFound ? 'found' : 'locked'}">
                     ${relicIconHtml(r.id, 30)}
                     <div class="relic-name">${r.title}</div>
-                    <div style="font-size:10px;color:#6b533b">${found ? '✅ Entdeckt' : '🔒 Noch verborgen'}</div>
+                    <div style="font-size:10px;font-weight:800;color:${isAnswered ? '#15803d' : isFound ? '#b45309' : '#6b533b'};">
+                      ${isAnswered ? '✅ Erforscht (Quiz gelöst)' : isFound ? '⏳ Geborgen (Quiz offen)' : '🔒 Noch verborgen'}
+                    </div>
                   </div>
                 `;
               })
@@ -1729,7 +1840,7 @@ export class UIScene extends Phaser.Scene {
           </div>
         </div>
 
-        <!-- Hefter-Kurzcode Export & Import -->
+        <!-- 4. Mnemotechnik-Hefter-Code gemäß Skill 5.4 Punkt 4 -->
         <div style="margin-top:12px;background:#faf2e1;border:2px solid #c9ab78;border-radius:10px;padding:10px 14px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;">
           <div>
             <div style="font-size:12.5px;font-weight:800;color:#5a2d0c">📝 Dein Hefter-Kurzcode (zum Abschreiben ins Geschichtsheft):</div>
@@ -1747,26 +1858,63 @@ export class UIScene extends Phaser.Scene {
             </div>
           </div>
         </div>
+
+        <!-- 5. Soundtrack- & Audiosteuerung gemäß Skill 5.4 Punkt 5 -->
+        <div style="margin-top:12px;background:#2a1d10;color:#fff8e7;border:2px solid #e8c170;border-radius:10px;padding:9px 14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span style="font-size:22px;">🎵</span>
+            <div>
+              <div style="font-size:11px;color:#fde68a;font-weight:800;text-transform:uppercase;">Aktueller Soundtrack</div>
+              <div style="font-size:13.5px;font-weight:800;color:#ffffff;">${bgmInfo.title} <span style="font-size:11.5px;color:#93c5fd;">(${bgmInfo.epoch})</span></div>
+            </div>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:12px;">
+            <button class="retro-btn" id="pause-mute-btn" style="padding:5px 10px;">
+              ${bgm.isMutedState() ? '🔇 Ton stumm' : '🔊 Ton an'}
+            </button>
+            <div style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;">
+              <span>Lautstärke:</span>
+              <input type="range" id="pause-volume-slider" min="0" max="100" value="${Math.round(bgm.getVolume() * 100)}" style="width:110px;vertical-align:middle;cursor:pointer;" />
+              <span id="pause-volume-label" style="min-width:32px;">${Math.round(bgm.getVolume() * 100)}%</span>
+            </div>
+          </div>
+        </div>
       </div>
 
+      <!-- 6. Aktionsleiste gemäß Skill 5.4 Punkt 6 -->
       <div class="modal-footer" style="justify-content:space-between;">
-        <div style="display:flex;gap:8px;">
-          <button class="retro-btn" id="pause-startscreen-btn">👤 Charakter / Kapitel wählen</button>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="retro-btn" id="pause-startscreen-btn">🏠 Zum Startbildschirm</button>
+          <button class="retro-btn" id="pause-epoch-btn" style="background:#5a3818;border-color:#ffd86b;">🗺️ Kapitel & Epochen wechseln (Z)</button>
           <button class="retro-btn" id="pause-reset-btn" style="background:#7f1d1d;border-color:#fca5a5;">🔄 Spielstand zurücksetzen</button>
         </div>
-        <button class="retro-btn" id="pause-close-btn" style="background:#15803d;border-color:#86efac;color:#fff;">▶ Zurück ins Spiel</button>
+        <button class="retro-btn" id="pause-close-btn" style="background:#15803d;border-color:#86efac;color:#fff;font-weight:800;padding:7px 16px;">
+          ▶ Weiter spielen (P)
+        </button>
       </div>
     `;
 
     document.getElementById('pause-resume-btn')!.onclick = () => this.closeModal();
     document.getElementById('pause-close-btn')!.onclick = () => this.closeModal();
-    document.getElementById('pause-open-bag')!.onclick = () => this.openBag();
-    document.getElementById('pause-open-craft')!.onclick = () => this.openCraft();
-    document.getElementById('pause-open-build')!.onclick = () => this.openBuild();
-    document.getElementById('pause-open-trade')!.onclick = () => this.openTrade();
-    document.getElementById('pause-open-lex')!.onclick = () => this.openLexicon();
-    document.getElementById('pause-open-time')!.onclick = () => this.openTimeline();
-    document.getElementById('pause-open-cert')!.onclick = () => this.openCertificate();
+    document.getElementById('pause-epoch-btn')!.onclick = () => this.openTimeline();
+
+    document.getElementById('pause-mute-btn')!.onclick = () => {
+      bgm.toggleMute();
+      this.updateMuteBtn();
+      const muteBtn = document.getElementById('pause-mute-btn');
+      if (muteBtn) muteBtn.textContent = bgm.isMutedState() ? '🔇 Ton stumm' : '🔊 Ton an';
+    };
+
+    const volSlider = document.getElementById('pause-volume-slider') as HTMLInputElement;
+    const volLabel = document.getElementById('pause-volume-label');
+    if (volSlider) {
+      volSlider.oninput = () => {
+        const val = parseInt(volSlider.value, 10);
+        bgm.setVolume(val / 100);
+        if (volLabel) volLabel.textContent = `${val}%`;
+      };
+    }
 
     document.getElementById('pause-copy-code')!.onclick = () => {
       navigator.clipboard?.writeText(code);
