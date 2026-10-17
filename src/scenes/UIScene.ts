@@ -814,7 +814,7 @@ export class UIScene extends Phaser.Scene {
               <div class="gender-grid" style="margin-top:0;">
                 <div class="gender-card ${chosenGender === 'male' ? 'active' : ''}" data-gender="male">
                   <div class="gender-avatar-box">
-                    <span style="font-size:26px">🧔‍♂️</span>
+                    <img src="${state.malePreviewUrl || 'assets/gfx/player_greek_male.png'}" alt="Alexios" style="width:24px;height:36px;object-fit:contain;image-rendering:pixelated;" />
                   </div>
                   <div>
                     <div style="font-weight:900;font-size:13px;color:#2a1d10">Alexios (m)</div>
@@ -823,7 +823,7 @@ export class UIScene extends Phaser.Scene {
                 </div>
                 <div class="gender-card ${chosenGender === 'female' ? 'active' : ''}" data-gender="female">
                   <div class="gender-avatar-box">
-                    <span style="font-size:26px">👩🏻</span>
+                    <img src="${state.femalePreviewUrl || 'assets/gfx/player_greek_female.png'}" alt="Helena" style="width:24px;height:36px;object-fit:contain;image-rendering:pixelated;" />
                   </div>
                   <div>
                     <div style="font-weight:900;font-size:13px;color:#2a1d10">Helena (w)</div>
