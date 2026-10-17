@@ -24,60 +24,80 @@ export const FARM_FRAMES: Record<string, [number, number, number, number]> = {
 };
 
 export const GREEK_WORLD_SPRITES = [
-  'parthenon',
-  'parthenon_gold',
-  'theater',
-  'pnyx_council',
-  'small_temple_blue',
-  'small_temple_red',
-  'statue_nike_gold',
-  'statue_athena_shrine',
-  'statue_zeus_throne',
-  'stoa_colonnade',
-  'marble_archway',
-  'fountain_round',
-  'cistern_pool',
-  'column_doric',
-  'column_ionic',
-  'statue_bronze_hoplite',
-  'amphora_black_painted',
-  'olive_press',
-  'olive_mill',
-  'pottery_kiln',
-  'bread_oven',
-  'greek_villa',
   'academy_garden',
-  'brazier_tripod',
-  'chest_ornate',
-  'trireme_ship',
-  'trireme_blue',
-  'trireme_red',
-  'lighthouse_pharos',
-  'watchtower_stone',
-  'olive_tree_1',
-  'olive_tree_2',
-  'spartan_phalanx',
-  'spartan_spear_rack',
-  'spartan_helmet_rack',
-  'training_dummy',
-  'spartan_barracks',
-  'spartan_hall',
-  'war_drum',
-  'thermopylae_gate',
-  'siege_catapult',
-  'campfire_stone',
-  'fire_altar_gold',
   'agora_stall_olives',
   'agora_stall_spices',
-  'stone_well',
+  'amphora_black_painted',
+  'bougainvillea_orange',
+  'bougainvillea_pink',
+  'brazier_tripod',
+  'bread_oven',
+  'campfire_stone',
+  'chest_ornate',
+  'cistern_pool',
+  'citrus_tree_lemon',
+  'citrus_tree_orange',
+  'cloud_puff',
+  'column_doric',
+  'column_ionic',
+  'cypress_tall_1',
+  'cypress_tall_2',
+  'fire_altar_gold',
   'fishing_boat',
-  'tholos_delphi',
+  'fountain_round',
+  'fruit_basket_figs',
+  'greek_villa',
+  'lighthouse_pharos',
+  'lion_fountain',
+  'marble_archway',
+  'marble_bench',
+  'market_stall_blue',
+  'market_stall_green',
+  'market_stall_red',
+  'olive_mill',
+  'olive_press',
+  'olive_tree_1',
+  'olive_tree_2',
+  'olymp_cloud_bridge',
   'olymp_island_main',
   'olymp_island_small',
-  'olymp_cloud_bridge',
   'olymp_orb_pedestal',
   'olymp_rune_circle',
-  'cloud_puff',
+  'owl_athena',
+  'parthenon',
+  'parthenon_gold',
+  'pnyx_council',
+  'pottery_kiln',
+  'ruined_column',
+  'scroll_shelf',
+  'siege_catapult',
+  'small_temple_blue',
+  'small_temple_red',
+  'spartan_barracks',
+  'spartan_hall',
+  'spartan_helmet_rack',
+  'spartan_phalanx',
+  'spartan_spear_rack',
+  'stag_deer',
+  'statue_athena_shrine',
+  'statue_bronze_hoplite',
+  'statue_nike_gold',
+  'statue_pegasus',
+  'statue_philosopher',
+  'statue_zeus_throne',
+  'stoa_colonnade',
+  'stone_well',
+  'terracotta_pots',
+  'theater',
+  'thermopylae_gate',
+  'tholos_delphi',
+  'training_dummy',
+  'trireme_blue',
+  'trireme_red',
+  'trireme_ship',
+  'war_drum',
+  'watchtower_stone',
+  'world_map_table',
 ] as const;
 
 export const NPC_IDS = [
@@ -105,12 +125,22 @@ export class BootScene extends Phaser.Scene {
     const bar = this.add.rectangle(w / 2 - 60, h / 2, 0, 6, 0x38bdf8).setOrigin(0, 0.5);
     this.load.on('progress', (p: number) => (bar.width = 120 * p));
 
-    // 1. Basis-Objekt- & Farm-Sheets
+    // 1. Basis-Objekt-, Farm- & Welt-Sheets
+    this.load.atlas('world', 'assets/world/world_atlas.png', 'assets/world/world_atlas.json');
+    this.load.image('ground_med_a2', 'assets/world/ground_med_a2.png');
+    this.load.image('ground_a2', 'assets/world/ground_a2.png');
     this.load.image('objects', 'assets/gfx/objects.png');
     this.load.image('farm', 'assets/gfx/farm.png');
     this.load.image('ores', 'assets/gfx/ores.png');
 
-    // 2. Kuratierte 16-Bit Griechenland- & Olymp-Sprites (aus den 6 RAR-Archiven)
+    // Farm-Props (5-Stufen-Agrarsystem)
+    this.load.image('farm_soil_raw', 'assets/props/farm_soil_raw.png');
+    this.load.image('farm_soil_dry', 'assets/props/farm_soil_dry.png');
+    this.load.image('farm_soil_wet', 'assets/props/farm_soil_wet.png');
+    this.load.image('farm_wheat_sprout', 'assets/props/farm_wheat_sprout.png');
+    this.load.image('farm_wheat_ripe', 'assets/props/farm_wheat_ripe.png');
+
+    // 2. Kuratierte 16-Bit Griechenland- & Olymp-Sprites
     for (const key of GREEK_WORLD_SPRITES) {
       this.load.image(key, `assets/greek/${key}.png`);
     }
@@ -131,14 +161,14 @@ export class BootScene extends Phaser.Scene {
       });
     }
 
-    // 4. Autonome mediterrane Fauna (Ziegen & Rinder)
+    // 4. Autonome mediterrane Fauna (Ziegen & Rinder) - 80x80px Frames!
     this.load.spritesheet('animal_cow', 'assets/gfx/cow.png', {
-      frameWidth: 32,
-      frameHeight: 32,
+      frameWidth: 80,
+      frameHeight: 80,
     });
     this.load.spritesheet('animal_goat', 'assets/gfx/goat.png', {
-      frameWidth: 32,
-      frameHeight: 32,
+      frameWidth: 80,
+      frameHeight: 80,
     });
 
     // 5. Didaktische 16-Bit-Item-Icons & 5 Leit-Relikte
@@ -228,29 +258,49 @@ export class BootScene extends Phaser.Scene {
       });
     }
 
-    // Tier-Animationen
+    // Tier-Animationen (Ziege & Rind: 80x80px Frames, Idle = Frame 0, Walk = Frames 4..7)
     this.anims.create({
       key: 'idle-cow',
-      frames: this.anims.generateFrameNumbers('animal_cow', { start: 0, end: 3 }),
-      frameRate: 2.5,
-      repeat: -1,
+      frames: [{ key: 'animal_cow', frame: 0 }],
+      frameRate: 1,
+    });
+    this.anims.create({
+      key: 'cow-idle',
+      frames: [{ key: 'animal_cow', frame: 0 }],
+      frameRate: 1,
     });
     this.anims.create({
       key: 'walk-cow',
       frames: this.anims.generateFrameNumbers('animal_cow', { start: 4, end: 7 }),
-      frameRate: 4,
+      frameRate: 5,
+      repeat: -1,
+    });
+    this.anims.create({
+      key: 'cow-walk',
+      frames: this.anims.generateFrameNumbers('animal_cow', { start: 4, end: 7 }),
+      frameRate: 5,
       repeat: -1,
     });
     this.anims.create({
       key: 'idle-goat',
-      frames: this.anims.generateFrameNumbers('animal_goat', { start: 0, end: 3 }),
-      frameRate: 3,
-      repeat: -1,
+      frames: [{ key: 'animal_goat', frame: 0 }],
+      frameRate: 1,
+    });
+    this.anims.create({
+      key: 'goat-idle',
+      frames: [{ key: 'animal_goat', frame: 0 }],
+      frameRate: 1,
     });
     this.anims.create({
       key: 'walk-goat',
       frames: this.anims.generateFrameNumbers('animal_goat', { start: 4, end: 7 }),
-      frameRate: 5,
+      frameRate: 6,
+      repeat: -1,
+    });
+    this.anims.create({
+      key: 'goat-walk',
+      frames: this.anims.generateFrameNumbers('animal_goat', { start: 4, end: 7 }),
+      frameRate: 6,
       repeat: -1,
     });
 

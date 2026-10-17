@@ -951,7 +951,7 @@ export class UIScene extends Phaser.Scene {
 
         const chDef = CHAPTERS[chosenChapter];
         this.openDialogSpec({
-          speaker: `Kapitel ${chDef.id}: ${chDef.title}`,
+          speaker: `Kapitel ${chDef.id}: ${this.cleanTitle(chDef.title)}`,
           nodes: [
             ...chDef.intro,
             {
@@ -1004,7 +1004,7 @@ export class UIScene extends Phaser.Scene {
         ${
           nextCh
             ? `<button class="retro-btn" id="milestone-next-btn" style="background:#15803d;border-color:#86efac;color:#fff;font-size:14px;padding:8px 16px;">
-                 Weiter zu Kapitel ${nextCh.id}: ${nextCh.title} ▸
+                 Weiter zu Kapitel ${nextCh.id}: ${this.cleanTitle(nextCh.title)} ▸
                </button>`
             : `<button class="retro-btn" id="milestone-cert-btn" style="background:#b45309;border-color:#fde047;color:#fff;font-size:14px;padding:8px 16px;">
                  🎓 Offizielle Hellas-Urkunde öffnen
@@ -1022,7 +1022,7 @@ export class UIScene extends Phaser.Scene {
         bgm.playChapter(nextCh.id);
         this.closeModal();
         this.openDialogSpec({
-          speaker: `Kapitel ${nextCh.id}: ${nextCh.title}`,
+          speaker: `Kapitel ${nextCh.id}: ${this.cleanTitle(nextCh.title)}`,
           nodes: [
             ...nextCh.intro,
             {

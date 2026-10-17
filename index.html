@@ -1293,6 +1293,47 @@
           padding: 5px 10px;
           font-size: 12px;
         }
+
+        @media (max-height: 450px) {
+          .showcase-strip {
+            display: none !important;
+          }
+          .modal-card {
+            max-height: 97dvh !important;
+          }
+          .modal-header {
+            padding: 4px 10px !important;
+          }
+          .modal-footer {
+            padding: 4px 10px !important;
+          }
+          .modal-body {
+            padding: 6px 10px !important;
+          }
+          .start-hero-card {
+            padding: 6px 10px !important;
+          }
+          .start-hero-title {
+            font-size: 14px !important;
+          }
+          .start-hero-sub {
+            display: none !important;
+          }
+          .gender-avatar-box {
+            height: 42px !important;
+          }
+          .dialog-dock {
+            max-height: 46dvh !important;
+            overflow-y: auto !important;
+            padding: 6px 10px !important;
+          }
+        }
+      }
+
+      @media (pointer: coarse) {
+        .key-badge {
+          display: none !important;
+        }
       }
 
       @media print {
