@@ -177,6 +177,8 @@ export class BootScene extends Phaser.Scene {
     }
     for (const relicId of Object.keys(GREEK_RELICS)) {
       this.load.image(relicId, `assets/icons/${relicId}.png`);
+      this.load.image(`icon_${relicId}`, `assets/icons/${relicId}.png`);
+      this.load.image(`icon-${relicId}`, `assets/icons/${relicId}.png`);
     }
   }
 

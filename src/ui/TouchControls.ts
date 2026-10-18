@@ -12,6 +12,8 @@ export class TouchControls {
   private origin = new Phaser.Math.Vector2();
   private readonly radius = 28;
 
+  private isTouch: boolean;
+
   constructor(scene: Phaser.Scene, private isModal?: () => boolean) {
     const w = scene.scale.width;
     const h = scene.scale.height;
@@ -92,9 +94,21 @@ export class TouchControls {
     scene.input.on('pointerup', release);
     scene.input.on('pointerupoutside', release);
 
-    const isTouch = scene.sys.game.device.input.touch;
-    this.button.setVisible(isTouch);
-    this.label.setVisible(isTouch);
+    this.isTouch = Boolean(scene.sys.game.device.input.touch);
+    this.button.setVisible(this.isTouch);
+    this.label.setVisible(this.isTouch);
+  }
+
+  public setVisible(visible: boolean): void {
+    const show = visible && this.isTouch;
+    this.button.setVisible(show);
+    this.label.setVisible(show);
+    if (!visible) {
+      this.base.setVisible(false);
+      this.knob.setVisible(false);
+      this.stickPointerId = null;
+      this.vector.set(0, 0);
+    }
   }
 
   consumeAction(): boolean {

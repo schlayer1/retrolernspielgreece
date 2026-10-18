@@ -139,6 +139,7 @@ export class UIScene extends Phaser.Scene {
     this.root = document.getElementById('ui-root')!;
     this.buildDOM();
     state.touch = new TouchControls(this) as unknown as typeof state.touch;
+    state.touch?.setVisible?.(false);
 
     const dismissRotateBtn = document.getElementById('btn-dismiss-rotate');
     if (dismissRotateBtn) {
@@ -536,6 +537,7 @@ export class UIScene extends Phaser.Scene {
     this.activeDialogSpec = spec;
     this.activeDialogIndex = 0;
     state.modal = true;
+    state.touch?.setVisible?.(false);
     this.renderCurrentDialogNode();
   }
 
@@ -545,6 +547,7 @@ export class UIScene extends Phaser.Scene {
     if (this.activeDialogIndex >= nodes.length) {
       this.dialogDock.classList.remove('open');
       state.modal = this.activeModal !== 'none';
+      state.touch?.setVisible?.(!state.modal);
       const done = this.activeDialogSpec.onDone;
       this.activeDialogSpec = undefined;
       if (done) done();
@@ -645,7 +648,14 @@ export class UIScene extends Phaser.Scene {
     state.lastModalClose = Date.now();
     this.modalBackdrop.classList.remove('open');
     this.modalCard.classList.remove('dark');
+    state.touch?.setVisible?.(!state.modal);
     sfx.click();
+  }
+
+  private openModalCard(): void {
+    state.modal = true;
+    this.modalBackdrop.classList.add('open');
+    state.touch?.setVisible?.(false);
   }
 
   // ---------------- Epochen-Portal ----------------
@@ -709,7 +719,7 @@ export class UIScene extends Phaser.Scene {
       </div>
     `;
 
-    this.modalBackdrop.classList.add('open');
+    this.openModalCard();
 
     const closeBtn = document.getElementById('portal-close-btn')!;
     const playBtn = document.getElementById('portal-play-greek')!;
@@ -963,7 +973,7 @@ export class UIScene extends Phaser.Scene {
     };
 
     render();
-    this.modalBackdrop.classList.add('open');
+    this.openModalCard();
   }
 
   // ---------------- Kapitel-Meilenstein-Feier ----------------
@@ -1013,7 +1023,7 @@ export class UIScene extends Phaser.Scene {
       </div>
     `;
 
-    this.modalBackdrop.classList.add('open');
+    this.openModalCard();
 
     const nextBtn = document.getElementById('milestone-next-btn');
     if (nextBtn && nextCh) {
@@ -1188,7 +1198,7 @@ export class UIScene extends Phaser.Scene {
     };
 
     render();
-    this.modalBackdrop.classList.add('open');
+    this.openModalCard();
   }
 
   private addEventListener(el: Element, fn: () => void): void {
@@ -1272,7 +1282,7 @@ export class UIScene extends Phaser.Scene {
     };
 
     render();
-    this.modalBackdrop.classList.add('open');
+    this.openModalCard();
   }
 
   // ---------------- Polis-Bauwerke Modal (V) ----------------
@@ -1349,7 +1359,7 @@ export class UIScene extends Phaser.Scene {
     };
 
     render();
-    this.modalBackdrop.classList.add('open');
+    this.openModalCard();
   }
 
   // ---------------- Agora & Seehandel Modal (H) ----------------
@@ -1415,7 +1425,7 @@ export class UIScene extends Phaser.Scene {
     };
 
     render();
-    this.modalBackdrop.classList.add('open');
+    this.openModalCard();
   }
 
   // ---------------- Archäologie-Relikt Quiz Modal ----------------
@@ -1491,7 +1501,7 @@ export class UIScene extends Phaser.Scene {
       });
     });
 
-    this.modalBackdrop.classList.add('open');
+    this.openModalCard();
   }
 
   // ---------------- Hellas-Lexikon Modal (L) ----------------
@@ -1564,7 +1574,7 @@ export class UIScene extends Phaser.Scene {
     };
 
     render();
-    this.modalBackdrop.classList.add('open');
+    this.openModalCard();
   }
 
   // ---------------- Epochen- & Phasen-Vergleichstabelle (Taste Z) ----------------
@@ -1688,7 +1698,7 @@ export class UIScene extends Phaser.Scene {
       });
     });
 
-    this.modalBackdrop.classList.add('open');
+    this.openModalCard();
   }
 
   // ---------------- Standardisierter 7-Kachel-Referenz-Pausebildschirm (Skill 5.4, Taste P) ----------------
@@ -1944,7 +1954,7 @@ export class UIScene extends Phaser.Scene {
       this.openStartScreen();
     };
 
-    this.modalBackdrop.classList.add('open');
+    this.openModalCard();
   }
 
   // ---------------- Druckbare A4 Hellas-Urkunde (U) ----------------
@@ -2023,6 +2033,6 @@ export class UIScene extends Phaser.Scene {
     document.getElementById('cert-print-btn')!.onclick = () => window.print();
     document.getElementById('cert-close-btn')!.onclick = () => this.closeModal();
 
-    this.modalBackdrop.classList.add('open');
+    this.openModalCard();
   }
 }

@@ -25,6 +25,12 @@ interface AmbientFlier {
   baseY: number;
 }
 
+export interface ObstacleCircle {
+  x: number;
+  y: number;
+  radius: number;
+}
+
 /**
  * Steuert frei umherziehende mediterrane Fauna (Bergziegen, zahme Ziegen im Gehege,
  * Auerochsen/Rinder) sowie Schmetterlinge & Libellen über den Olivenhainen und Wiesen.
@@ -33,10 +39,28 @@ export class WildlifeManager {
   private scene: Phaser.Scene;
   private animals: RoamingAnimal[] = [];
   private fliers: AmbientFlier[] = [];
+  private obstacles: ObstacleCircle[] = [];
   private rng = new Phaser.Math.RandomDataGenerator(['greek-wildlife']);
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
+  }
+
+  public setObstacles(obs: ObstacleCircle[]): void {
+    this.obstacles = obs;
+  }
+
+  public addObstacle(x: number, y: number, radius = 24): void {
+    this.obstacles.push({ x, y, radius });
+  }
+
+  public isObstacleNear(x: number, y: number): boolean {
+    for (const o of this.obstacles) {
+      if (Phaser.Math.Distance.Between(x, y, o.x, o.y) < o.radius) {
+        return true;
+      }
+    }
+    return false;
   }
 
   public addAnimal(cfg: {
@@ -152,8 +176,19 @@ export class WildlifeManager {
         if (a.timer <= 0) {
           a.state = 'walk';
           a.timer = this.rng.realInRange(1.8, 3.8);
-          a.targetX = this.rng.realInRange(a.bounds.minX, a.bounds.maxX);
-          a.targetY = this.rng.realInRange(a.bounds.minY, a.bounds.maxY);
+          let tx = a.sprite.x;
+          let ty = a.sprite.y;
+          for (let attempt = 0; attempt < 6; attempt++) {
+            const rx = this.rng.realInRange(a.bounds.minX, a.bounds.maxX);
+            const ry = this.rng.realInRange(a.bounds.minY, a.bounds.maxY);
+            if (!this.isObstacleNear(rx, ry)) {
+              tx = rx;
+              ty = ry;
+              break;
+            }
+          }
+          a.targetX = tx;
+          a.targetY = ty;
           if (a.walkAnim) a.sprite.play(a.walkAnim, true);
         }
       } else if (a.state === 'walk') {
@@ -168,10 +203,16 @@ export class WildlifeManager {
           const step = Math.min(dist, a.speed * dt);
           const nx = a.sprite.x + (dx / dist) * step;
           const ny = a.sprite.y + (dy / dist) * step;
-          a.sprite.x = Phaser.Math.Clamp(nx, a.bounds.minX, a.bounds.maxX);
-          a.sprite.y = Phaser.Math.Clamp(ny, a.bounds.minY, a.bounds.maxY);
-          a.sprite.setFlipX(dx > 0.5);
-          if (a.walkAnim) a.sprite.play(a.walkAnim, true);
+          if (this.isObstacleNear(nx, ny)) {
+            a.state = 'idle';
+            a.timer = this.rng.realInRange(2.0, 4.0);
+            if (a.idleAnim) a.sprite.play(a.idleAnim, true);
+          } else {
+            a.sprite.x = Phaser.Math.Clamp(nx, a.bounds.minX, a.bounds.maxX);
+            a.sprite.y = Phaser.Math.Clamp(ny, a.bounds.minY, a.bounds.maxY);
+            a.sprite.setFlipX(dx > 0.5);
+            if (a.walkAnim) a.sprite.play(a.walkAnim, true);
+          }
         }
       }
 

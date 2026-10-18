@@ -121,7 +121,7 @@ class GameState extends Phaser.Events.EventEmitter {
   lastModalClose = 0;
   hint = '';
   compassText = '';
-  touch?: { vector: Phaser.Math.Vector2; consumeAction(): boolean };
+  touch?: { vector: Phaser.Math.Vector2; consumeAction(): boolean; setVisible?(visible: boolean): void };
 
   readonly saves = new SaveManager();
 
@@ -364,8 +364,8 @@ class GameState extends Phaser.Events.EventEmitter {
       this.unlockSilent(['olymp_goetter', 'orakel_delphi', 'olympische_spiele']);
     } else if (this.chapter === 6) {
       this.buildings = ['olivenpresse', 'hafen_werft', 'sparta_schmiede', 'pnyx_buehne', 'zeus_altar'];
-      this.playerX = 290;
-      this.playerY = 115;
+      this.playerX = 285;
+      this.playerY = 150;
       if (this.count('aspis_schild') === 0) this.inventory.aspis_schild = 1;
       if (this.count('dory_speer') === 0) this.inventory.dory_speer = 1;
       if (this.count('fackel') === 0) this.inventory.fackel = 1;

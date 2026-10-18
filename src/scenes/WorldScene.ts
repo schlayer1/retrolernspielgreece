@@ -530,8 +530,9 @@ export class WorldScene extends Phaser.Scene {
     this.placeDecor('marble_bench', 645, 415);
     this.placeDecor('statue_bronze_hoplite', 495, 330);
 
-    // 7. Autonome mediterrane Fauna (Ziegen & Rinder mit 80x80-Frames & 0.55 Skalierung)
-    const goat1 = this.add.sprite(145, 465, 'animal_goat').setScale(0.55);
+    // 7. Autonome mediterrane Fauna mit proportionaler Skalierung nach Skill-Standard 1.1
+    // Ziegen hüfthoch (~21px) bei 80px Frame -> scale: 0.24
+    const goat1 = this.add.sprite(145, 465, 'animal_goat').setScale(0.24);
     this.wildlife.addAnimal({
       kind: 'goat',
       sprite: goat1,
@@ -539,7 +540,7 @@ export class WorldScene extends Phaser.Scene {
       idleAnim: 'idle-goat',
       walkAnim: 'walk-goat',
     });
-    const goat2 = this.add.sprite(185, 485, 'animal_goat').setScale(0.55);
+    const goat2 = this.add.sprite(185, 485, 'animal_goat').setScale(0.24);
     this.wildlife.addAnimal({
       kind: 'goat',
       sprite: goat2,
@@ -547,7 +548,8 @@ export class WorldScene extends Phaser.Scene {
       idleAnim: 'idle-goat',
       walkAnim: 'walk-goat',
     });
-    const cow1 = this.add.sprite(110, 440, 'animal_cow').setScale(0.55);
+    // Rinder (~30px) bei 80px Frame -> scale: 0.35
+    const cow1 = this.add.sprite(110, 440, 'animal_cow').setScale(0.35);
     this.wildlife.addAnimal({
       kind: 'cow',
       sprite: cow1,
@@ -555,6 +557,13 @@ export class WorldScene extends Phaser.Scene {
       idleAnim: 'idle-cow',
       walkAnim: 'walk-cow',
     });
+
+    // Sperrliste für Wildlife: Tiere laufen nicht in Gebäude, Zisternen oder Feuer
+    this.wildlife.addObstacle(230, 365, 32); // Olivenpresse
+    this.wildlife.addObstacle(265, 430, 24); // Zisterne
+    this.wildlife.addObstacle(215, 175, 26); // Lagerfeuer
+    this.wildlife.addObstacle(345, 285, 30); // Griechische Villa
+    this.wildlife.addObstacle(445, 325, 28); // Agora-Stand
 
     // 8. Schmetterlinge & Libellen über den Hainen & Küsten
     this.wildlife.spawnAmbientFliers(MAP_W * TILE, MAP_H * TILE);
@@ -714,7 +723,7 @@ export class WorldScene extends Phaser.Scene {
       (n.sprite as Phaser.GameObjects.Sprite).play('idle-greek-male-down');
     }
     if (state.hasBuilding('sparta_schmiede')) {
-      const n = this.addNode('npc_brasidas', 155, 125, 'npc_guard', 0, '🛡️ Brasidas (Hoplit)', '#f87171', 1);
+      const n = this.addNode('npc_brasidas', 140, 125, 'npc_guard', 0, '🛡️ Brasidas (Hoplit)', '#f87171', 1);
       (n.sprite as Phaser.GameObjects.Sprite).play('idle-guard');
     }
 
@@ -754,18 +763,18 @@ export class WorldScene extends Phaser.Scene {
       this.addNode('babylon_legacy', 595, 325, 'statue_nike_gold', undefined, '👑 Alexanders Vermächtnis', '#fde047', 0.85);
     }
 
-    // 5. Mentor des AKTUELLEN Kapitels (NUR ein Mentor gleichzeitig, keine Vorwegnahme!)
+    // 5. Mentor des AKTUELLEN Kapitels (NUR ein Mentor gleichzeitig, Mindestabstand >= 44px!)
     const mentorDefs: Record<number, { kind: Kind; tex: string; anim: string; x: number; y: number; label: string }> = {
       1: { kind: 'npc_nikolaos', tex: 'npc_nikolaos', anim: 'idle-nikolaos', x: 395, y: 295, label: '🏛️ Dorfältester Nikolaos' },
       2: { kind: 'npc_telesikles', tex: 'npc_telesikles', anim: 'idle-telesikles', x: 645, y: 375, label: '⛵ Kapitän Telesikles' },
-      3: { kind: 'npc_kleomenes', tex: 'npc_kleomenes', anim: 'idle-kleomenes', x: 185, y: 145, label: '🛡️ Ephor Kleomenes' },
-      4: { kind: 'npc_perikles', tex: 'npc_perikles', anim: 'idle-perikles', x: 465, y: 245, label: '🦉 Staatsmann Perikles' },
-      5: { kind: 'npc_pythia', tex: 'npc_pythia', anim: 'idle-pythia', x: 575, y: 135, label: '🔮 Priesterin Pythia' },
-      6: { kind: 'npc_leonidas', tex: 'npc_leonidas', anim: 'idle-leonidas', x: 285, y: 98, label: '⚔️ König Leonidas' },
-      7: { kind: 'npc_themistokles', tex: 'npc_themistokles', anim: 'idle-themistokles', x: 660, y: 445, label: '⚓ Stratege Themistokles' },
-      8: { kind: 'npc_sokrates', tex: 'npc_sokrates', anim: 'idle-sokrates', x: 350, y: 175, label: '📜 Philosoph Sokrates' },
+      3: { kind: 'npc_kleomenes', tex: 'npc_kleomenes', anim: 'idle-kleomenes', x: 195, y: 145, label: '🛡️ Ephor Kleomenes' },
+      4: { kind: 'npc_perikles', tex: 'npc_perikles', anim: 'idle-perikles', x: 475, y: 240, label: '🦉 Staatsmann Perikles' },
+      5: { kind: 'npc_pythia', tex: 'npc_pythia', anim: 'idle-pythia', x: 565, y: 130, label: '🔮 Priesterin Pythia' },
+      6: { kind: 'npc_leonidas', tex: 'npc_leonidas', anim: 'idle-leonidas', x: 285, y: 115, label: '⚔️ König Leonidas' },
+      7: { kind: 'npc_themistokles', tex: 'npc_themistokles', anim: 'idle-themistokles', x: 650, y: 445, label: '⚓ Stratege Themistokles' },
+      8: { kind: 'npc_sokrates', tex: 'npc_sokrates', anim: 'idle-sokrates', x: 370, y: 175, label: '📜 Philosoph Sokrates' },
       9: { kind: 'npc_alexander', tex: 'npc_alexander', anim: 'idle-alexander', x: 535, y: 315, label: '👑 Alexander der Große' },
-      10: { kind: 'npc_ptolemaios', tex: 'npc_ptolemaios', anim: 'idle-ptolemaios', x: 560, y: 385, label: '🏛️ Chronist Ptolemaios' },
+      10: { kind: 'npc_ptolemaios', tex: 'npc_ptolemaios', anim: 'idle-ptolemaios', x: 520, y: 395, label: '🏛️ Chronist Ptolemaios' },
     };
 
     const curMentor = mentorDefs[state.chapter];
@@ -778,20 +787,49 @@ export class WorldScene extends Phaser.Scene {
   private placeGreekRelics(): void {
     const relicCoords: Array<{ kind: Kind; id: string; x: number; y: number; title: string; minChapter: number }> = [
       { kind: 'relic_amphore', id: 'relic_amphore', x: 185, y: 355, title: '🏺 Preisamphore', minChapter: 1 },
-      { kind: 'relic_agamemnon', id: 'relic_agamemnon', x: 75, y: 125, title: '🎭 Maske von Mykene', minChapter: 3 },
+      { kind: 'relic_agamemnon', id: 'relic_agamemnon', x: 65, y: 140, title: '🎭 Maske von Mykene', minChapter: 3 },
       { kind: 'relic_eule', id: 'relic_eule', x: 420, y: 405, title: '🦉 Eulen-Tetradrachme', minChapter: 4 },
       { kind: 'relic_antikythera', id: 'relic_antikythera', x: 695, y: 525, title: '⚙️ Antikythera-Werk', minChapter: 7 },
-      { kind: 'relic_alexander', id: 'relic_alexander', x: 605, y: 275, title: '👑 Alexander-Büste', minChapter: 9 },
+      { kind: 'relic_alexander', id: 'relic_alexander', x: 615, y: 275, title: '👑 Alexander-Büste', minChapter: 9 },
     ];
 
     for (const r of relicCoords) {
       if (state.chapter < r.minChapter) continue;
       if (state.relicsFound.includes(r.id)) continue;
-      const n = this.addNode(r.kind, r.x, r.y, r.id, undefined, r.title, '#facc15', 0.85);
+
+      // In-World-Marker (relic_marker_glow): Organischer Entdeckungsort mit Glanz und Schwebepartikeln
+      const aura = this.add.circle(r.x, r.y + 4, 13, 0xfacc15, 0.4).setDepth(r.y - 1);
+      this.tweens.add({
+        targets: aura,
+        scaleX: 1.25,
+        scaleY: 1.25,
+        alpha: 0.15,
+        duration: 900,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut',
+      });
+      const spark1 = this.add
+        .text(r.x - 9, r.y - 10, '✦', { fontSize: '9px', color: '#fef08a' })
+        .setDepth(r.y + 10);
+      const spark2 = this.add
+        .text(r.x + 8, r.y - 6, '✧', { fontSize: '8px', color: '#fde047' })
+        .setDepth(r.y + 10);
+      this.tweens.add({
+        targets: [spark1, spark2],
+        y: '-=4',
+        duration: 1100,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut',
+      });
+
+      const n = this.addNode(r.kind, r.x, r.y, r.id, undefined, r.title, '#facc15', 0.72);
+      (n as any).glowObjects = [aura, spark1, spark2];
       this.tweens.add({
         targets: n.sprite,
-        y: r.y - 4,
-        duration: 1100,
+        y: r.y - 3,
+        duration: 900,
         yoyo: true,
         repeat: -1,
         ease: 'Sine.easeInOut',
@@ -864,7 +902,7 @@ export class WorldScene extends Phaser.Scene {
     alwaysVisible = false,
   ): DomLabel {
     const el = document.createElement('div');
-    el.className = 'world-label';
+    el.className = 'world-label floating-nameplate';
     el.textContent = text;
     el.style.color = color;
     this.labelLayer.appendChild(el);
@@ -1085,6 +1123,9 @@ export class WorldScene extends Phaser.Scene {
       if (!def) return;
       if (!state.relicsFound.includes(relicId)) {
         state.relicsFound.push(relicId);
+      }
+      if ((n as any).glowObjects) {
+        (n as any).glowObjects.forEach((obj: any) => obj?.destroy?.());
       }
       n.label?.el.remove();
       this.domLabels = this.domLabels.filter((l) => l !== n.label);
