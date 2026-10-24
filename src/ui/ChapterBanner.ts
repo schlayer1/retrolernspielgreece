@@ -16,17 +16,23 @@ export class ChapterBanner {
   private timeoutId: any = null;
 
   constructor() {
-    this.el = document.createElement('div');
-    this.el.id = 'chapter-banner-overlay';
-    this.el.className = 'chapter-banner';
-    this.el.style.display = 'none';
-    document.body.appendChild(this.el);
+    const existing = document.getElementById('chapter-banner-overlay');
+    if (existing) {
+      this.el = existing;
+    } else {
+      this.el = document.createElement('div');
+      this.el.id = 'chapter-banner-overlay';
+      this.el.className = 'chapter-banner';
+      this.el.style.display = 'none';
+      document.body.appendChild(this.el);
+    }
     this.injectStyles();
   }
 
   public show(info: BannerInfo): void {
     if (this.timeoutId) clearTimeout(this.timeoutId);
 
+    const cleanTitle = info.title.replace(/^Kapitel\s+\d+:\s*/i, '');
     const chapterPrefix = info.chapterNumber !== undefined 
       ? `KAPITEL ${info.chapterNumber}: ` 
       : '';
@@ -35,7 +41,7 @@ export class ChapterBanner {
       <div class="banner-inner">
         <div class="banner-icon">${info.icon || '🏛️'}</div>
         <div class="banner-text">
-          <div class="banner-main">${chapterPrefix}${info.title}</div>
+          <div class="banner-main">${chapterPrefix}${cleanTitle}</div>
           ${info.subtitle ? `<div class="banner-sub">${info.subtitle}</div>` : ''}
         </div>
       </div>

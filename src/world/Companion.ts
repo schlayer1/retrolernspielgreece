@@ -71,8 +71,10 @@ export class CompanionManager {
     // 1. Spürsinn (< 60px)
     if (this.alertCooldown <= 0 && this.state !== 'petting' && targets) {
       for (const t of targets) {
-        if (!t.discovered && (t.kind?.includes('relic') || t.kind?.includes('resource') || t.isRelic)) {
-          const distToTarget = Phaser.Math.Distance.Between(dog.x, dog.y, t.x, t.y);
+        const tx = t.x ?? t.sprite?.x;
+        const ty = t.y ?? t.sprite?.y;
+        if (tx !== undefined && ty !== undefined && !t.discovered && (t.kind?.includes('relic') || t.kind?.includes('resource') || t.isRelic)) {
+          const distToTarget = Phaser.Math.Distance.Between(dog.x, dog.y, tx, ty);
           if (distToTarget < 58) {
             this.triggerAlert();
             return;
@@ -174,8 +176,11 @@ export class CompanionManager {
     const updatePos = () => {
       if (!this.sprite) return;
       const cam = this.scene.cameras.main;
-      const sx = (this.sprite.x - cam.scrollX) * cam.zoom;
-      const sy = (this.sprite.y - cam.scrollY - 20) * cam.zoom;
+      const rect = this.scene.game.canvas.getBoundingClientRect();
+      const scaleX = rect.width / cam.width;
+      const scaleY = rect.height / cam.height;
+      const sx = (this.sprite.x - cam.worldView.x) * scaleX + rect.left;
+      const sy = (this.sprite.y - 24 - cam.worldView.y) * scaleY + rect.top;
       el.style.left = `${sx}px`;
       el.style.top = `${sy}px`;
     };

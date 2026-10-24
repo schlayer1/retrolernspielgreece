@@ -131,7 +131,7 @@ export class WorldScene extends Phaser.Scene {
     this.transitioningOlymp = false;
     this.wildlife = new WildlifeManager(this);
     this.banner = new ChapterBanner();
-    const chDef = CHAPTERS[state.chapter - 1] || CHAPTERS[0];
+    const chDef = CHAPTERS[state.chapter] || CHAPTERS[1];
     if (chDef) {
       this.banner.show({
         chapterNumber: state.chapter,
@@ -758,7 +758,7 @@ export class WorldScene extends Phaser.Scene {
       (n.sprite as Phaser.GameObjects.Sprite).play('idle-greek-male-down');
     }
     if (state.hasBuilding('sparta_schmiede')) {
-      const n = this.addNode('npc_brasidas', 160, 615, 'npc_guard', 0, '🛡️ Brasidas (Hoplit)', '#f87171', 1);
+      const n = this.addNode('npc_brasidas', 160, 645, 'npc_guard', 0, '🛡️ Brasidas (Hoplit)', '#f87171', 1);
       (n.sprite as Phaser.GameObjects.Sprite).play('idle-guard');
     }
 
@@ -797,15 +797,15 @@ export class WorldScene extends Phaser.Scene {
     // 5. Mentor des AKTUELLEN Kapitels
     const mentorDefs: Record<number, { kind: Kind; tex: string; anim: string; x: number; y: number; label: string }> = {
       1: { kind: 'npc_nikolaos', tex: 'npc_nikolaos', anim: 'idle-nikolaos', x: 800, y: 520, label: '🏛️ Dorfältester Nikolaos' },
-      2: { kind: 'npc_telesikles', tex: 'npc_telesikles', anim: 'idle-telesikles', x: 1220, y: 700, label: '⛵ Kapitän Telesikles' },
-      3: { kind: 'npc_kleomenes', tex: 'npc_kleomenes', anim: 'idle-kleomenes', x: 260, y: 540, label: '🛡️ Ephor Kleomenes' },
-      4: { kind: 'npc_perikles', tex: 'npc_perikles', anim: 'idle-perikles', x: 800, y: 520, label: '🦉 Staatsmann Perikles' },
+      2: { kind: 'npc_telesikles', tex: 'npc_telesikles', anim: 'idle-telesikles', x: 1150, y: 720, label: '⛵ Kapitän Telesikles' },
+      3: { kind: 'npc_kleomenes', tex: 'npc_kleomenes', anim: 'idle-kleomenes', x: 280, y: 580, label: '🛡️ Ephor Kleomenes' },
+      4: { kind: 'npc_perikles', tex: 'npc_perikles', anim: 'idle-perikles', x: 830, y: 520, label: '🦉 Staatsmann Perikles' },
       5: { kind: 'npc_pythia', tex: 'npc_pythia', anim: 'idle-pythia', x: 1160, y: 200, label: '🔮 Priesterin Pythia' },
       6: { kind: 'npc_leonidas', tex: 'npc_leonidas', anim: 'idle-leonidas', x: 280, y: 180, label: '⚔️ König Leonidas' },
-      7: { kind: 'npc_themistokles', tex: 'npc_themistokles', anim: 'idle-themistokles', x: 1220, y: 820, label: '⚓ Stratege Themistokles' },
-      8: { kind: 'npc_sokrates', tex: 'npc_sokrates', anim: 'idle-sokrates', x: 530, y: 700, label: '📜 Philosoph Sokrates' },
+      7: { kind: 'npc_themistokles', tex: 'npc_themistokles', anim: 'idle-themistokles', x: 1220, y: 850, label: '⚓ Stratege Themistokles' },
+      8: { kind: 'npc_sokrates', tex: 'npc_sokrates', anim: 'idle-sokrates', x: 560, y: 700, label: '📜 Philosoph Sokrates' },
       9: { kind: 'npc_alexander', tex: 'npc_alexander', anim: 'idle-alexander', x: 1040, y: 540, label: '👑 Alexander der Große' },
-      10: { kind: 'npc_ptolemaios', tex: 'npc_ptolemaios', anim: 'idle-ptolemaios', x: 1080, y: 660, label: '🏛️ Chronist Ptolemaios' },
+      10: { kind: 'npc_ptolemaios', tex: 'npc_ptolemaios', anim: 'idle-ptolemaios', x: 1220, y: 1010, label: '🏛️ Chronist Ptolemaios' },
     };
 
     const curMentor = mentorDefs[state.chapter];
@@ -883,11 +883,22 @@ export class WorldScene extends Phaser.Scene {
       bibliothek_alexandria: 'parthenon_gold',
     };
 
+    const scaleMap: Record<string, number> = {
+      olivenpresse: 1.0,
+      hafen_werft: 1.05,
+      sparta_schmiede: 1.25,
+      pnyx_buehne: 1.5,
+      zeus_altar: 0.75,
+      akademie_stube: 1.5,
+      bibliothek_alexandria: 1.15,
+    };
+
     const tex = spriteMap[b.id] || 'small_temple_blue';
-    const scale = b.id === 'bibliothek_alexandria' ? 0.65 : 0.9;
+    const scale = scaleMap[b.id] || 1.2;
     n.sprite.setVisible(false);
     n.builtSprite = this.add
-      .image(n.sprite.x, n.sprite.y - 6, tex)
+      .image(n.sprite.x, n.sprite.y, tex)
+      .setOrigin(0.5, 0.9)
       .setScale(scale)
       .setDepth(n.sprite.y + 18);
     if (n.label) {

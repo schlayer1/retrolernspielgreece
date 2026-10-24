@@ -88,17 +88,20 @@ function parseWorldScene() {
     items.push({ id: `decor_${m[1]}@${m[2]},${m[3]}`, tex: m[1], x: parseInt(m[2], 10), y: parseInt(m[3], 10), originY: 0.9 });
   }
 
-  // addNode('kind', x, y, 'tex', ...)
-  const nodeRegex = /this\.addNode\(\s*['"]([^'"]+)['"]\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*['"]([^'"]+)['"]/g;
+  // addNode('kind', x, y, 'tex', frame, label, color, scale)
+  const nodeRegex = /this\.addNode\(\s*['"]([^'"]+)['"]\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*['"]([^'"]+)['"]\s*,\s*([^,]+)\s*,\s*([^,]+)\s*,\s*([^,]+)\s*,\s*([0-9.]+)/g;
   while ((m = nodeRegex.exec(content)) !== null) {
-    items.push({ id: `node_${m[1]}@${m[2]},${m[3]}`, tex: m[4], x: parseInt(m[2], 10), y: parseInt(m[3], 10), originY: 0.9 });
+    items.push({ id: `node_${m[1]}@${m[2]},${m[3]}`, tex: m[4], scale: parseFloat(m[8]), x: parseInt(m[2], 10), y: parseInt(m[3], 10), originY: 0.9 });
   }
 
-  // Chapter 1 Mentor: Nikolaos
-  items.push({ id: 'mentor_nikolaos', tex: 'npc_nikolaos', x: 800, y: 520, originY: 0.9 });
+  // Mentor positions across chapters
+  const mentorRegex = /(\d+):\s*\{\s*kind:\s*['"]([^'"]+)['"]\s*,\s*tex:\s*['"]([^'"]+)['"][^}]*?x:\s*(\d+)\s*,\s*y:\s*(\d+)/g;
+  while ((m = mentorRegex.exec(content)) !== null) {
+    items.push({ id: `mentor_ch${m[1]}_${m[2]}`, tex: m[3], scale: 1.0, x: parseInt(m[4], 10), y: parseInt(m[5], 10), originY: 0.9 });
+  }
 
   // Player spawn
-  items.push({ id: 'player_spawn', tex: 'player_greek_female', x: 800, y: 620, originY: 0.9 });
+  items.push({ id: 'player_spawn', tex: 'player_greek_female', scale: 1.0, x: 800, y: 620, originY: 0.9 });
 
   return items;
 }
@@ -106,11 +109,23 @@ function parseWorldScene() {
 // Parse items.ts to extract Chapter 1 & building sites
 function parseItems() {
   const content = fs.readFileSync(path.join(ROOT, 'src/data/items.ts'), 'utf8');
+  const buildingsBlock = content.split('export const BUILDINGS')[1] || '';
   const buildings = [];
+  const spriteMap = {
+    olivenpresse: { tex: 'olive_press', scale: 1.0 },
+    hafen_werft: { tex: 'trireme_ship', scale: 1.05 },
+    sparta_schmiede: { tex: 'spartan_hall', scale: 1.25 },
+    pnyx_buehne: { tex: 'small_temple_blue', scale: 1.5 },
+    zeus_altar: { tex: 'fire_altar_gold', scale: 0.75 },
+    akademie_stube: { tex: 'small_temple_red', scale: 1.5 },
+    bibliothek_alexandria: { tex: 'parthenon_gold', scale: 1.15 },
+  };
   const bRegex = /id:\s*['"]([^'"]+)['"][\s\S]*?x:\s*(\d+)[\s\S]*?y:\s*(\d+)/g;
   let m;
-  while ((m = bRegex.exec(content)) !== null) {
-    buildings.push({ id: `bld_${m[1]}`, tex: 'farm_soil_raw', x: parseInt(m[2], 10), y: parseInt(m[3], 10), originY: 0.9 });
+  while ((m = bRegex.exec(buildingsBlock)) !== null) {
+    const bId = m[1];
+    const info = spriteMap[bId] || { tex: 'small_temple_blue', scale: 1.2 };
+    buildings.push({ id: `bld_${bId}`, tex: info.tex, scale: info.scale, x: parseInt(m[2], 10), y: parseInt(m[3], 10), originY: 0.9 });
   }
   return buildings;
 }
@@ -121,11 +136,11 @@ function computeAABB(item) {
   if (file) {
     dims = getPngDimensions(file);
   } else if (item.tex.startsWith('player') || item.tex.startsWith('npc')) {
-    dims = { w: 24, h: 32 };
+    dims = { w: 16, h: 32 };
   }
-  const scale = getScale(item.tex);
-  const w = dims.w * scale;
-  const h = dims.h * scale;
+  const scale = item.scale !== undefined ? item.scale : getScale(item.tex);
+  const w = dims.w * scale * 0.95;
+  const h = dims.h * scale * 0.95;
   const left = item.x - w * 0.5;
   const right = item.x + w * 0.5;
   const top = item.y - h * item.originY;
