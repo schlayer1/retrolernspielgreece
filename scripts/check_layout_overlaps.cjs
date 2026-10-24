@@ -32,24 +32,48 @@ function findAssetFile(texKey) {
 
 // Scale rules according to decor.ts
 function getScale(texKey) {
-  if (texKey.startsWith('parthenon')) return 1.0;
-  if (texKey.startsWith('stoa_colonnade')) return 0.95;
-  if (texKey.startsWith('cypress_tall')) return 0.95;
-  if (texKey.startsWith('spartan_barracks') || texKey.startsWith('spartan_hall')) return 0.95;
-  if (texKey.startsWith('market_stall') || texKey.startsWith('agora_stall')) return 0.92;
-  if (texKey.startsWith('trireme_')) return 0.92;
+  // 1. Gebäude & Monumente
+  if (texKey.startsWith('parthenon')) return 1.40;
+  if (texKey.startsWith('stoa_colonnade')) return 1.60;
+  if (texKey.startsWith('greek_villa')) return 1.80;
+  if (texKey.startsWith('theater')) return 1.35;
+  if (texKey.startsWith('spartan_barracks') || texKey.startsWith('spartan_hall')) return 1.35;
+  if (texKey.startsWith('small_temple')) return 1.60;
+  if (texKey.startsWith('pnyx_council')) return 1.45;
+  if (texKey.startsWith('tholos_delphi')) return 1.20;
+  if (texKey.startsWith('watchtower_stone')) return 1.20;
+  if (texKey.startsWith('thermopylae_gate')) return 1.20;
+  if (texKey.startsWith('trireme_')) return 1.10;
+  if (texKey.startsWith('lighthouse_pharos')) return 1.20;
+  if (texKey.startsWith('spartan_phalanx')) return 0.85;
+
+  // 2. Bäume & Vegetation
+  if (texKey.startsWith('cypress_tall')) return 0.90;
   if (texKey.startsWith('olive_tree')) return 0.90;
-  if (texKey.startsWith('lion_fountain') || texKey.startsWith('fountain_')) return 0.90;
-  if (texKey.startsWith('marble_bench')) return 0.90;
-  if (texKey.startsWith('greek_villa')) return 0.90;
-  if (texKey.startsWith('column_') || texKey.startsWith('ruined_column')) return 0.90;
-  if (texKey.startsWith('statue_')) return 0.88;
-  if (texKey.startsWith('theater')) return 0.88;
-  if (texKey.startsWith('citrus_tree')) return 0.85;
-  if (texKey.startsWith('bougainvillea')) return 0.85;
-  if (texKey.startsWith('basket_') || texKey.startsWith('cloth_rolls') || texKey.startsWith('fruit_basket') || texKey.startsWith('terracotta_pots')) return 0.85;
-  if (texKey.startsWith('stone_well')) return 0.65;
-  return 0.85;
+  if (texKey.startsWith('citrus_tree')) return 0.50;
+  if (texKey.startsWith('bougainvillea')) return 0.65;
+
+  // 3. Mittlere Stadt-Props
+  if (texKey.startsWith('market_stall') || texKey.startsWith('agora_stall')) return 0.75;
+  if (texKey.startsWith('lion_fountain') || texKey.startsWith('fountain_') || texKey.startsWith('cistern_pool')) return 0.85;
+  if (texKey.startsWith('marble_bench')) return 0.50;
+  if (texKey.startsWith('stone_well')) return 0.55;
+  if (texKey.startsWith('column_') || texKey.startsWith('ruined_column')) return 0.75;
+  if (texKey.startsWith('statue_')) return 0.75;
+  if (texKey.startsWith('campfire')) return 0.75;
+  if (texKey.startsWith('fire_altar')) return 0.55;
+  if (texKey.startsWith('brazier_tripod')) return 0.70;
+  if (texKey.startsWith('scroll_shelf') || texKey.startsWith('world_map_table')) return 0.55;
+
+  // 4. Kleinstobjekte & Marktauslagen (14-20px)
+  if (texKey.startsWith('fruit_basket_figs')) return 0.20;
+  if (texKey.startsWith('cloth_rolls')) return 0.38;
+  if (texKey.startsWith('basket_')) return 0.36;
+  if (texKey.startsWith('terracotta_pots')) return 0.38;
+  if (texKey.startsWith('amphora_')) return 0.65;
+  if (texKey.startsWith('chest_ornate')) return 0.55;
+
+  return 0.65;
 }
 
 // Parse WorldScene.ts to extract placeDecor calls and addNode calls

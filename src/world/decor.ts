@@ -23,9 +23,9 @@ const starts = (...p: string[]) => (id: string) => p.some((x) => id.startsWith(x
 
 const RULES: Rule[] = [
   // 1. Große Bäume & Zypressen: nur der Stamm am Fuß blockiert, Baumkrone dahinter frei begehbar
-  { test: starts('cypress_tall'), scale: 0.95, box: () => ({ w: 8, h: 5, by: 2 }) },
-  { test: starts('citrus_tree'), scale: 0.85, box: () => ({ w: 9, h: 6, by: 2 }) },
-  { test: starts('olive_tree'), scale: 0.9, box: () => ({ w: 10, h: 6, by: 2 }) },
+  { test: starts('cypress_tall'), scale: 0.90, box: () => ({ w: 8, h: 5, by: 2 }) },
+  { test: starts('citrus_tree'), scale: 0.50, box: () => ({ w: 14, h: 8, by: 2 }) },
+  { test: starts('olive_tree'), scale: 0.90, box: () => ({ w: 10, h: 6, by: 2 }) },
   { test: starts('tree_pine_tall', 'tree_oak_tall', 'tree_pine_slim'), scale: 0.56, box: () => ({ w: 10, h: 6, by: 2 }) },
   { test: starts('tree_dead', 'tree_bare', 'tree_small'), scale: 0.72, box: () => ({ w: 7, h: 5, by: 2 }) },
   { test: starts('tree_'), scale: 0.72, box: (w) => ({ w: Math.max(8, Math.min(12, w * 0.16)), h: 6, by: 2 }) },
@@ -41,7 +41,7 @@ const RULES: Rule[] = [
   { test: starts('rock_'), scale: 0.58, box: (w) => ({ w: w * 0.76, h: 14, by: 3 }) },
 
   // 4. Büsche, Hecken & mediterrane Blumen
-  { test: starts('bougainvillea'), scale: 0.85, box: () => null },
+  { test: starts('bougainvillea'), scale: 0.65, box: () => null },
   { test: starts('bush_big', 'bush_huge'), scale: 0.52, box: (w) => ({ w: w * 0.6, h: 11, by: 3 }) },
   { test: starts('bush_tall'), scale: 0.58, box: (w) => ({ w: w * 0.65, h: 9, by: 2 }) },
   { test: starts('bush_'), scale: 0.68, box: (w) => ({ w: Math.max(10, w * 0.62), h: 8, by: 2 }) },
@@ -58,44 +58,57 @@ const RULES: Rule[] = [
   { test: starts('fence_post'), scale: 0.58, box: () => ({ w: 5, h: 4, by: 1 }) },
   { test: starts('fence_'), scale: 0.58, box: (w) => ({ w: Math.max(12, w * 0.9), h: 5, by: 2 }) },
 
-  // 7. Agora, Brunnen & Markt-Props
-  { test: starts('market_stall'), scale: 0.92, box: (w) => ({ w: w * 0.78, h: 14, by: 3 }) },
-  { test: starts('agora_stall'), scale: 0.92, box: (w) => ({ w: w * 0.78, h: 14, by: 3 }) },
-  { test: starts('lion_fountain', 'fountain_'), scale: 0.9, box: (w) => ({ w: w * 0.75, h: 12, by: 2 }) },
-  { test: starts('stone_well', 'well'), scale: 0.65, box: (w) => ({ w: w * 0.78, h: 12, by: 3 }) },
-  { test: starts('marble_bench'), scale: 0.9, box: (w) => ({ w: w * 0.75, h: 8, by: 2 }) },
-  { test: starts('fruit_basket', 'basket_', 'cloth_rolls', 'terracotta_pots', 'barrel', 'crate', 'sack', 'basket'), scale: 0.85, box: (w) => ({ w: w * 0.7, h: 8, by: 2 }) },
-  { test: starts('scroll_shelf'), scale: 0.9, box: (w) => ({ w: w * 0.8, h: 12, by: 2 }) },
-  { test: starts('world_map_table'), scale: 0.9, box: (w) => ({ w: w * 0.8, h: 12, by: 2 }) },
+  // 7. Kleinstobjekte & Marktauslagen (Realistischer 16-Bit-Maßstab: 14-20px)
+  { test: starts('cloth_rolls'), scale: 0.38, box: () => null },
+  { test: starts('fruit_basket_figs'), scale: 0.20, box: () => null },
+  { test: starts('basket_'), scale: 0.36, box: () => null },
+  { test: starts('terracotta_pots'), scale: 0.38, box: (w) => ({ w: w * 0.7, h: 6, by: 1 }) },
+  { test: starts('amphora_'), scale: 0.65, box: () => null },
+  { test: starts('chest_ornate'), scale: 0.55, box: (w) => ({ w: w * 0.7, h: 6, by: 1 }) },
+  { test: starts('barrel', 'crate', 'sack', 'basket'), scale: 0.45, box: (w) => ({ w: w * 0.7, h: 6, by: 1 }) },
+
+  // 8. Agora, Brunnen, Stände & mittlere Stadt-Props
+  { test: starts('market_stall'), scale: 0.75, box: (w) => ({ w: w * 0.78, h: 14, by: 3 }) },
+  { test: starts('agora_stall'), scale: 0.75, box: (w) => ({ w: w * 0.78, h: 14, by: 3 }) },
+  { test: starts('lion_fountain', 'fountain_'), scale: 0.85, box: (w) => ({ w: w * 0.75, h: 12, by: 2 }) },
+  { test: starts('stone_well', 'well'), scale: 0.55, box: (w) => ({ w: w * 0.78, h: 12, by: 3 }) },
+  { test: starts('cistern_pool'), scale: 0.85, box: (w) => ({ w: w * 0.75, h: 12, by: 2 }) },
+  { test: starts('marble_bench'), scale: 0.50, box: (w) => ({ w: w * 0.75, h: 8, by: 2 }) },
+  { test: starts('scroll_shelf'), scale: 0.55, box: (w) => ({ w: w * 0.8, h: 10, by: 2 }) },
+  { test: starts('world_map_table'), scale: 0.55, box: (w) => ({ w: w * 0.8, h: 10, by: 2 }) },
   { test: starts('torch', 'lantern', 'banner'), scale: 0.62, box: () => null },
 
-  // 8. Statuen & Säulen
-  { test: starts('statue_'), scale: 0.88, box: (w) => ({ w: Math.min(18, w * 0.6), h: 8, by: 2 }) },
-  { test: starts('column_', 'ruined_column'), scale: 0.9, box: () => ({ w: 10, h: 7, by: 1 }) },
+  // 9. Statuen & Säulen
+  { test: starts('statue_'), scale: 0.75, box: (w) => ({ w: Math.min(18, w * 0.6), h: 8, by: 2 }) },
+  { test: starts('column_', 'ruined_column'), scale: 0.75, box: () => ({ w: 10, h: 7, by: 1 }) },
 
-  // 9. Gebäude, Tempel, Hallen & Schiffe: nur der untere Sockel blockiert
-  { test: starts('parthenon'), scale: 1.0, box: (w) => ({ w: w * 0.8, h: 22, by: 3 }) },
-  { test: starts('theater'), scale: 0.88, box: (w) => ({ w: w * 0.78, h: 22, by: 3 }) },
-  { test: starts('stoa_colonnade'), scale: 0.95, box: (w) => ({ w: w * 0.82, h: 14, by: 3 }) },
-  { test: starts('greek_villa'), scale: 0.9, box: (w) => ({ w: w * 0.82, h: 16, by: 3 }) },
-  { test: starts('spartan_barracks', 'spartan_hall'), scale: 0.95, box: (w) => ({ w: w * 0.8, h: 16, by: 3 }) },
-  { test: starts('spartan_phalanx'), scale: 0.9, box: (w) => ({ w: w * 0.82, h: 14, by: 2 }) },
-  { test: starts('spartan_spear_rack', 'spartan_helmet_rack'), scale: 0.85, box: (w) => ({ w: w * 0.75, h: 10, by: 2 }) },
-  { test: starts('trireme_'), scale: 0.92, box: (w) => ({ w: w * 0.78, h: 16, by: 3 }) },
-  { test: starts('lighthouse_pharos'), scale: 0.95, box: (w) => ({ w: 26, h: 18, by: 3 }) },
-  { test: starts('tholos_delphi'), scale: 0.95, box: (w) => ({ w: w * 0.75, h: 16, by: 3 }) },
-  { test: starts('watchtower_stone'), scale: 0.9, box: (w) => ({ w: 24, h: 14, by: 3 }) },
-  { test: starts('thermopylae_gate'), scale: 0.95, box: (w) => ({ w: w * 0.82, h: 16, by: 3 }) },
+  // 10. Monumente, Gebäude, Tempel, Hallen & Schiffe (Majestätische Größe 90-160px)
+  { test: starts('parthenon'), scale: 1.40, box: (w) => ({ w: w * 0.82, h: 28, by: 4 }) },
+  { test: starts('theater'), scale: 1.35, box: (w) => ({ w: w * 0.80, h: 26, by: 4 }) },
+  { test: starts('stoa_colonnade'), scale: 1.60, box: (w) => ({ w: w * 0.82, h: 16, by: 3 }) },
+  { test: starts('greek_villa'), scale: 1.80, box: (w) => ({ w: w * 0.80, h: 22, by: 4 }) },
+  { test: starts('small_temple_'), scale: 1.60, box: (w) => ({ w: w * 0.78, h: 20, by: 4 }) },
+  { test: starts('pnyx_council'), scale: 1.45, box: (w) => ({ w: w * 0.78, h: 18, by: 3 }) },
+  { test: starts('spartan_barracks', 'spartan_hall'), scale: 1.35, box: (w) => ({ w: w * 0.80, h: 20, by: 3 }) },
+  { test: starts('spartan_phalanx'), scale: 0.85, box: (w) => ({ w: w * 0.82, h: 14, by: 2 }) },
+  { test: starts('spartan_spear_rack', 'spartan_helmet_rack'), scale: 0.55, box: (w) => ({ w: w * 0.75, h: 10, by: 2 }) },
+  { test: starts('war_drum'), scale: 0.55, box: (w) => ({ w: w * 0.75, h: 8, by: 2 }) },
+  { test: starts('trireme_'), scale: 1.10, box: (w) => ({ w: w * 0.78, h: 18, by: 3 }) },
+  { test: starts('lighthouse_pharos'), scale: 1.20, box: (w) => ({ w: 28, h: 20, by: 3 }) },
+  { test: starts('tholos_delphi'), scale: 1.20, box: (w) => ({ w: w * 0.75, h: 18, by: 3 }) },
+  { test: starts('watchtower_stone'), scale: 1.20, box: (w) => ({ w: 26, h: 16, by: 3 }) },
+  { test: starts('thermopylae_gate'), scale: 1.20, box: (w) => ({ w: w * 0.82, h: 18, by: 3 }) },
 
-  // 10. Lagerfeuer & Kult
-  { test: starts('campfire', 'fire_altar'), scale: 0.9, box: () => null },
-  { test: starts('brazier_tripod'), scale: 0.9, box: () => ({ w: 12, h: 8, by: 2 }) },
+  // 11. Lagerfeuer & Kult
+  { test: starts('campfire'), scale: 0.75, box: () => ({ w: 24, h: 12, by: 2 }) },
+  { test: starts('fire_altar'), scale: 0.55, box: () => ({ w: 26, h: 14, by: 2 }) },
+  { test: starts('brazier_tripod'), scale: 0.70, box: () => ({ w: 12, h: 8, by: 2 }) },
   { test: starts('bridge_', 'ladder'), scale: 0.62, box: () => null },
-  { test: starts('owl_athena'), scale: 0.85, box: () => null },
-  { test: starts('stag_deer'), scale: 0.85, box: () => ({ w: 16, h: 8, by: 2 }) },
+  { test: starts('owl_athena'), scale: 0.65, box: () => null },
+  { test: starts('stag_deer'), scale: 0.75, box: () => ({ w: 16, h: 8, by: 2 }) },
 ];
 
-const FALLBACK: Rule = { test: () => true, scale: 0.85, box: (w) => ({ w: w * 0.6, h: 9, by: 2 }) };
+const FALLBACK: Rule = { test: () => true, scale: 0.65, box: (w) => ({ w: w * 0.6, h: 9, by: 2 }) };
 
 /** Liefert Maßstab und Kollisionsbox für ein Atlas-Sprite der Größe fw × fh. */
 export function decorSpec(id: string, fw: number, fh: number): DecorSpec {

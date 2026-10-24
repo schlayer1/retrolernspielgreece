@@ -37,6 +37,7 @@ type Kind =
   | 'res_holz'
   | 'res_kalkstein'
   | 'res_oliven'
+  | 'res_oranges'
   | 'res_ton'
   | 'res_wolle'
   | 'res_eisenerz'
@@ -510,19 +511,19 @@ export class WorldScene extends Phaser.Scene {
   private scatterGreekWorld(): void {
     // 1. Akropolis im Norden (Erhabenes Plateau bei Y=80..260)
     this.placeDecor('parthenon', 800, 140);
-    this.placeDecor('statue_athena_shrine', 720, 150);
-    this.placeDecor('statue_nike_gold', 880, 150);
-    this.placeDecor('column_doric', 750, 220);
-    this.placeDecor('column_doric', 850, 200);
-    this.placeDecor('ruined_column', 890, 250);
-    this.placeDecor('cypress_tall_1', 670, 140);
-    this.placeDecor('cypress_tall_2', 930, 140);
+    this.placeDecor('statue_athena_shrine', 680, 150);
+    this.placeDecor('statue_nike_gold', 920, 150);
+    this.placeDecor('column_doric', 740, 220);
+    this.placeDecor('column_doric', 860, 200);
+    this.placeDecor('ruined_column', 680, 220);
+    this.placeDecor('cypress_tall_1', 610, 140);
+    this.placeDecor('cypress_tall_2', 990, 140);
 
     // 2. Athen: Weitläufige Agora (Platz-Zentrum 800, 608)
     // Westliche Agora-Flanke (Civic & Fountain Terrace)
     this.placeDecor('stoa_colonnade', 700, 480);
     this.placeDecor('terracotta_pots', 790, 480);
-    this.placeDecor('bougainvillea_pink', 610, 480);
+    this.placeDecor('bougainvillea_pink', 450, 540);
     this.placeDecor('lion_fountain', 670, 580);
     this.placeDecor('marble_bench', 670, 680); // 100px südlich vom Brunnen, herrlicher Freiraum!
     this.placeDecor('greek_villa', 550, 560); // Außerhalb der Agora an der westlichen Wohnstraße
@@ -530,15 +531,13 @@ export class WorldScene extends Phaser.Scene {
     // Östliche Agora-Flanke (Bazaar & Marktstände)
     this.placeDecor('statue_philosopher', 880, 480);
     this.placeDecor('market_stall_blue', 950, 480); // Blaue Marktbude (Tuch & Seide)
-    this.placeDecor('cloth_rolls', 1025, 480); // Auslage: Gewebte Stoffballen & Teppiche
+    this.placeDecor('cloth_rolls', 1015, 480); // Auslage: Gewebte Stoffballen & Teppiche
     this.placeDecor('market_stall_red', 950, 800);  // 160px südlich vom Agora-Hauptstand!
     this.placeDecor('bougainvillea_orange', 1045, 800);
 
     // 3. Attika-Haine & mediterrane Baumgruppen im Süden
     this.placeDecor('cypress_tall_1', 610, 820);
     this.placeDecor('cypress_tall_2', 1110, 860);
-    this.placeDecor('citrus_tree_lemon', 560, 900);
-    this.placeDecor('citrus_tree_orange', 1010, 920);
     this.placeDecor('olive_tree_1', 620, 980);
     this.placeDecor('olive_tree_2', 920, 980);
 
@@ -553,7 +552,7 @@ export class WorldScene extends Phaser.Scene {
     // 5. Delphi & Aufstieg zum Olymp im Nordosten (K5+)
     if (state.chapter >= 5) {
       this.placeDecor('tholos_delphi', 1160, 160);
-      this.placeDecor('brazier_tripod', 1110, 170);
+      this.placeDecor('brazier_tripod', 1080, 170);
       this.placeDecor('column_ionic', 1220, 140);
       this.placeDecor('column_ionic', 1270, 140);
     }
@@ -696,14 +695,18 @@ export class WorldScene extends Phaser.Scene {
     this.addNode('cistern_water', 720, 850, 'cistern_pool', undefined, '💧 Zisterne: Quellwasser', '#38bdf8', 0.9);
 
     // Fischgründe am Ägäis-Strand
-    this.addNode('fish_spot', 1220, 820, 'fishing_boat', undefined, '🐟 Ägäis-Fischgrund', '#38bdf8', 0.85);
+    this.addNode('fish_spot', 1200, 790, 'fishing_boat', undefined, '🐟 Ägäis-Fischgrund', '#38bdf8', 0.85);
 
-    // Spartanisches Lagerfeuer & Kochstelle
-    this.addNode('campfire_cook', 240, 540, 'campfire_stone', undefined, '🔥 Lagerfeuer & Kessel', '#fb923c', 0.95);
+    // Mediterrane Zitrushaine & Obstbäume
+    this.addNode('res_oranges', 1010, 920, 'citrus_tree_orange', undefined, '🍊 Orangenbaum (E: Pflücken)', '#f97316', 0.50);
+    this.addNode('res_oranges', 560, 900, 'citrus_tree_lemon', undefined, '🍋 Zitronenhain (E: Pflücken)', '#facc15', 0.50);
+
+    // Spartanisches Lagerfeuer & Kochstelle (reines 36px Steinfeuer ohne Überhang)
+    this.addNode('campfire_cook', 240, 540, 'campfire_stone', undefined, '🔥 Lagerfeuer & Kessel', '#fb923c', 0.75);
 
     // Agora-Handelsstand (Ostflanke der Agora)
-    this.addNode('agora_stall', 950, 640, 'agora_stall_olives', undefined, '⚖️ Agora-Handel', '#fde047', 0.92);
-    this.placeDecor('basket_figs', 1025, 640);
+    this.addNode('agora_stall', 950, 640, 'agora_stall_olives', undefined, '⚖️ Agora-Handel', '#fde047', 0.75);
+    this.placeDecor('basket_figs', 1015, 640);
   }
 
   private placeGreekBuildingsAndNPCs(): void {
@@ -771,17 +774,17 @@ export class WorldScene extends Phaser.Scene {
       this.addNode('olymp_portal', 1340, 160, 'olymp_orb_pedestal', undefined, '⚡ Wolkentor zum Berg Olymp', '#7dd3fc', 0.85);
     }
     if (state.chapter >= 6) {
-      this.addNode('thermopylae_gate', 280, 140, 'thermopylae_gate', undefined, '🛡️ Pass der Thermopylen', '#f87171', 0.95);
-      this.addNode('beacon_tower', 360, 140, 'watchtower_stone', undefined, '🔥 Signal-Wachturm', '#fb923c', 0.9);
+      this.addNode('thermopylae_gate', 250, 140, 'thermopylae_gate', undefined, '🛡️ Pass der Thermopylen', '#f87171', 0.95);
+      this.addNode('beacon_tower', 380, 140, 'watchtower_stone', undefined, '🔥 Signal-Wachturm', '#fb923c', 0.9);
       this.addNode('parthenon_goal', 800, 240, 'fire_altar_gold', undefined, '🏛️ Altar der Akropolis', '#fde047', 0.85);
     }
     if (state.chapter >= 7) {
-      this.addNode('trireme_warship', 1330, 870, 'trireme_red', undefined, '⚓ Kriegstrireme von Salamis', '#f87171', 0.95);
-      this.addNode('pharos_lighthouse', 1440, 960, 'lighthouse_pharos', undefined, '🗼 Pharos-Leuchtturm', '#fde047', 0.95);
+      this.addNode('trireme_warship', 1320, 870, 'trireme_red', undefined, '⚓ Kriegstrireme von Salamis', '#f87171', 0.95);
+      this.addNode('pharos_lighthouse', 1450, 970, 'lighthouse_pharos', undefined, '🗼 Pharos-Leuchtturm', '#fde047', 0.95);
     }
     if (state.chapter >= 8) {
-      this.placeDecor('theater', 880, 350);
-      this.addNode('theater_stage', 880, 400, 'brazier_tripod', undefined, '🎭 Bühne des Theaters', '#c084fc', 0.85);
+      this.placeDecor('theater', 930, 340);
+      this.addNode('theater_stage', 930, 390, 'brazier_tripod', undefined, '🎭 Bühne des Theaters', '#c084fc', 0.70);
     }
     if (state.chapter >= 9) {
       this.placeDecor('marble_archway', 1060, 380);
@@ -1231,6 +1234,15 @@ export class WorldScene extends Phaser.Scene {
       state.bump('holz_chopped', 1);
       state.unlockLexicon('olivenbaum');
       state.emit('toast', '🫒 +2 Attische Oliven & +1 Olivenholz geerntet!');
+      return;
+    }
+    if (n.kind === 'res_oranges') {
+      n.readyAt = Date.now() + REGROW_MS;
+      n.sprite.setAlpha(0.45);
+      state.add('oliven', 2);
+      state.food = Math.min(100, state.food + 25);
+      sfx.pickup();
+      state.emit('toast', '🍊 +2 Sonnengereifte Früchte gepflückt! (+25% Sättigung gestillt)');
       return;
     }
     if (n.kind === 'res_holz') {

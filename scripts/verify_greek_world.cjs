@@ -104,6 +104,38 @@ async function main() {
     await page.screenshot({ path: westShot });
     console.log(`Saved West Fountain Terrace screenshot: ${westShot}`);
 
+    // 6. Move player to Sparta Campfire at (240, 540)
+    console.log('Teleporting player to Sparta Campfire (260, 540)...');
+    await page.evaluate(() => {
+      const scene = window.Phaser?.GAMES?.[0]?.scene?.getScene('World');
+      if (scene?.player) {
+        scene.player.setPosition(275, 540);
+      }
+    });
+    await sleep(800);
+
+    const campfireShot = path.join(ARTIFACT_DIR, 'greek_06_campfire_verified.png');
+    await page.screenshot({ path: campfireShot });
+    console.log(`Saved Campfire screenshot: ${campfireShot}`);
+
+    // 7. Move player to Orchard Orange Tree at (1010, 920) & press E
+    console.log('Teleporting player to Orchard Orange Tree (1010, 935)...');
+    await page.evaluate(() => {
+      const scene = window.Phaser?.GAMES?.[0]?.scene?.getScene('World');
+      if (scene?.player) {
+        scene.player.setPosition(1010, 935);
+      }
+    });
+    await sleep(800);
+
+    // Press E to harvest orange tree
+    await page.keyboard.press('KeyE');
+    await sleep(800);
+
+    const orchardShot = path.join(ARTIFACT_DIR, 'greek_07_orchard_harvest_verified.png');
+    await page.screenshot({ path: orchardShot });
+    console.log(`Saved Orchard Harvest screenshot: ${orchardShot}`);
+
     console.log('\n--- VERIFICATION COMPLETED ---');
     console.log(`Total Errors: ${errors.length}`);
   } catch (err) {
