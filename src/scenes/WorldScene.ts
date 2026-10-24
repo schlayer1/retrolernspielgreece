@@ -260,6 +260,8 @@ export class WorldScene extends Phaser.Scene {
       [740, 200, 360, 160],
       // Hafen Piräus -> Kriegshafen Salamis
       [1220, 720, 1240, 820],
+      // Piräus-Hafenbecken -> Holzsteg zum Kolonistenschiff
+      [1220, 722, 1340, 722],
     ];
 
     let minDist = 999999;
@@ -336,8 +338,9 @@ export class WorldScene extends Phaser.Scene {
         const coastLineX = 75 * TILE + Math.sin(y * 0.012) * 50 - (y > 720 ? (y - 720) * 0.12 : 0);
         const inSea = x >= coastLineX && ty >= AEGEAN_SEA.y;
 
-        // Regionen
-        const inHarborPier = !inSea && tx >= 73 && tx <= 80 && ty >= 42 && ty <= 48;
+        // Hölzerner Schiffsanlegesteg (Steg als Laufweg bis direkt zum Kolonistenschiff, Spalten 76..84, Zeilen 44..46)
+        const inPierJetty = tx >= 76 && tx <= 84 && ty >= 44 && ty <= 46;
+        const inHarborPier = (tx >= 73 && tx <= 80 && ty >= 42 && ty <= 48 && !inSea) || inPierJetty;
         const distAgora = Math.hypot(x - 800, y - 608);
         const inAgora =
           distAgora < 145 + dither * 14 ||
@@ -351,11 +354,18 @@ export class WorldScene extends Phaser.Scene {
         const inSpartaRock = Math.hypot(x - 240, y - 540) < 130 + dither * 14;
         const inThermoRock = Math.hypot(x - 280, y - 160) < 95 + dither * 12;
 
-        if (inSea) {
+        if (inSea && !inPierJetty) {
+          // Feiner Wasserschatten an der Südflanke des Stegs (Zeile 47)
+          const isPierShadow = tx >= 76 && tx <= 84 && ty === 47;
           const deep = x >= coastLineX + 64 && ty >= AEGEAN_SEA.y + 4;
-          const r = deep ? (dither > 0 ? 3 : 2) : dither > 0 ? 14 : 56;
-          const g = deep ? (dither > 0 ? 105 : 132) : dither > 0 ? 165 : 189;
-          const b = deep ? (dither > 0 ? 161 : 199) : dither > 0 ? 233 : 248;
+          let r = deep ? (dither > 0 ? 3 : 2) : dither > 0 ? 14 : 56;
+          let g = deep ? (dither > 0 ? 105 : 132) : dither > 0 ? 165 : 189;
+          let b = deep ? (dither > 0 ? 161 : 199) : dither > 0 ? 233 : 248;
+          if (isPierShadow) {
+            r = Math.round(r * 0.7);
+            g = Math.round(g * 0.7);
+            b = Math.round(b * 0.7);
+          }
 
           for (let dy = 0; dy < 2 && y + dy < H; dy++) {
             for (let dx = 0; dx < 2 && x + dx < W; dx++) {
@@ -401,7 +411,18 @@ export class WorldScene extends Phaser.Scene {
           by = 0; // Warmer mediterraner Naturpfad
         }
 
-        const [r, g, b] = sampleBlock(bx, by, x, y);
+        let [r, g, b] = sampleBlock(bx, by, x, y);
+        if (inPierJetty) {
+          // Kantenbalken für den Steg (oben, unten und am Kopfende)
+          const isTopBeam = y >= 704 && y <= 706;
+          const isBottomBeam = y >= 748 && y <= 751;
+          const isPierEnd = x >= 1356 && x <= 1359;
+          if (isTopBeam || isBottomBeam || isPierEnd) {
+            r = Math.round(r * 0.65);
+            g = Math.round(g * 0.65);
+            b = Math.round(b * 0.65);
+          }
+        }
         for (let dy = 0; dy < 2 && y + dy < H; dy++) {
           for (let dx = 0; dx < 2 && x + dx < W; dx++) {
             const pIdx = ((y + dy) * W + (x + dx)) * 4;
@@ -421,11 +442,12 @@ export class WorldScene extends Phaser.Scene {
   }
 
   private setupWaterAndBoundaries(): void {
-    // Animierte Wellenschimmer auf dem Meer
+    // Animierte Wellenschimmer auf dem Meer (Aussparung für den begehbaren Holzsteg)
     for (let wy = AEGEAN_SEA.y + 4; wy < MAP_H - 2; wy += 3) {
       for (let wx = AEGEAN_SEA.x + 4; wx < MAP_W - 2; wx += 4) {
         const sx = wx * TILE + 8;
         const sy = wy * TILE + 8;
+        if (sx >= 1210 && sx <= 1365 && sy >= 700 && sy <= 755) continue;
         const shimmer = this.add
           .rectangle(sx, sy, 12, 2, 0xbae6fd, 0.55)
           .setDepth(1);
@@ -433,17 +455,21 @@ export class WorldScene extends Phaser.Scene {
       }
     }
 
-    // Unsichtbare Barriere für tiefes Wasser
-    const seaBlock = this.add.rectangle(
-      (AEGEAN_SEA.x + 5) * TILE + 80,
-      (AEGEAN_SEA.y + 4) * TILE + 240,
-      200,
-      600,
-      0x000000,
-      0,
-    );
-    this.physics.add.existing(seaBlock, true);
-    this.obstacles.add(seaBlock);
+    // Unsichtbare Barrieren für tiefes Wasser (umschließen das Hafenbecken & den Steg begehbar)
+    // 1. Offenes Meer nördlich des Hafenkais
+    const seaNorth = this.add.rectangle(1420, 545, 360, 310, 0x000000, 0);
+    this.physics.add.existing(seaNorth, true);
+    this.obstacles.add(seaNorth);
+
+    // 2. Offenes Meer südlich des Stegs (Hafenbucht & tiefes Wasser)
+    const seaSouth = this.add.rectangle(1420, 920, 360, 330, 0x000000, 0);
+    this.physics.add.existing(seaSouth, true);
+    this.obstacles.add(seaSouth);
+
+    // 3. Tiefwasser östlich des Schiffsanlegers (hinter dem Kolonistenschiff)
+    const pierEnd = this.add.rectangle(1485, 727, 230, 54, 0x000000, 0);
+    this.physics.add.existing(pierEnd, true);
+    this.obstacles.add(pierEnd);
   }
 
   /**
@@ -557,8 +583,8 @@ export class WorldScene extends Phaser.Scene {
       this.placeDecor('column_ionic', 1270, 140);
     }
 
-    // 6. Südosten: Küste & Hafen von Piräus
-    this.placeDecor('marble_bench', 1200, 720);
+    // 6. Südosten: Küste & Hafen von Piräus (Uferpromenade)
+    this.placeDecor('marble_bench', 1180, 755);
     this.placeDecor('statue_bronze_hoplite', 1180, 660);
 
     // 7. Autonome mediterrane Fauna (angepasst an 100x80)
@@ -684,9 +710,9 @@ export class WorldScene extends Phaser.Scene {
       n.sprite.setTint(0xf8fafc);
     }
 
-    // Attischer Töpferton
-    this.addNode('res_ton', 600, 880, 'amphora_black_painted', undefined, '🏺 Attischer Töpferton', '#fb923c', 0.95);
-    this.addNode('res_ton', 570, 940, 'amphora_black_painted', undefined, '🏺 Attischer Töpferton', '#fb923c', 0.95);
+    // Attischer Töpferton (Eisenreiche rote Ton-Lagerstätten direkt am Meeresufer/Strand)
+    this.addNode('res_ton', 1160, 560, 'clay_deposit', undefined, '🏺 Attischer Töpferton (E)', '#fb923c', 1.0);
+    this.addNode('res_ton', 1150, 610, 'clay_deposit', undefined, '🏺 Attischer Töpferton (E)', '#fb923c', 1.0);
 
     // Schaf- & Ziegenwolle an der Weide
     this.addNode('res_wolle', 340, 860, 'stone_well', undefined, '🐑 Hirten-Wollkorb', '#f8fafc', 0.78);
@@ -754,7 +780,7 @@ export class WorldScene extends Phaser.Scene {
       (n.sprite as Phaser.GameObjects.Sprite).play('idle-greek-female-down');
     }
     if (state.hasBuilding('hafen_werft')) {
-      const n = this.addNode('npc_glaukos', 1260, 720, 'player_greek_male', 0, '⛵ Glaukos (Schiffszimmermann)', '#38bdf8', 1);
+      const n = this.addNode('npc_glaukos', 1250, 722, 'player_greek_male', 0, '⛵ Glaukos (Schiffszimmermann)', '#38bdf8', 1);
       (n.sprite as Phaser.GameObjects.Sprite).play('idle-greek-male-down');
     }
     if (state.hasBuilding('sparta_schmiede')) {
@@ -764,7 +790,7 @@ export class WorldScene extends Phaser.Scene {
 
     // 4. Interaktive Spezial-Stationen (Kapitel-Gating!)
     if (state.chapter >= 2) {
-      this.addNode('colony_ship', 1360, 720, 'trireme_blue', undefined, '⛵ Kolonistenschiff', '#38bdf8', 0.92);
+      this.addNode('colony_ship', 1360, 726, 'trireme_blue', undefined, '⛵ Kolonistenschiff', '#38bdf8', 0.92);
     }
     if (state.chapter >= 3) {
       this.addNode('training_dummy', 380, 540, 'training_dummy', undefined, '🛡️ Agoge-Übungsplatz', '#f87171', 0.95);
@@ -1095,10 +1121,10 @@ export class WorldScene extends Phaser.Scene {
       : Infinity;
 
     // Priorität für visuelle Einblendung (state.hint):
-    if (dogDist < 44 && dogDist <= distNode && dogDist <= animalDist) {
-      state.hint = '🐕 Argos (E: Streicheln)';
-    } else if (nearest && distNode <= REACH && distNode <= animalDist) {
+    if (nearest && distNode <= REACH) {
       state.hint = nearest.label?.el.textContent || 'Drücke E zum Interagieren';
+    } else if (dogDist < 44 && dogDist <= animalDist) {
+      state.hint = '🐕 Argos (E: Streicheln)';
     } else if (nearestAnimal && animalDist <= 48) {
       if (nearestAnimal.kind === 'goat') {
         const hasFeed = state.count('gerste') > 0 || state.count('oliven') > 0;
@@ -1120,10 +1146,10 @@ export class WorldScene extends Phaser.Scene {
       Boolean(state.touch?.consumeAction());
 
     if (justActed && Date.now() - state.lastModalClose > 250) {
-      if (dogDist < 44 && dogDist <= distNode && dogDist <= animalDist) {
-        this.companion.pet();
-      } else if (nearest && distNode <= REACH && distNode <= animalDist) {
+      if (nearest && distNode <= REACH) {
         this.interact(nearest);
+      } else if (dogDist < 44 && dogDist <= animalDist) {
+        this.companion.pet();
       } else if (nearestAnimal && animalDist <= 48) {
         if (nearestAnimal.kind === 'goat') {
           this.tryTameLuredAnimal(nearestAnimal);
@@ -1982,7 +2008,7 @@ export class WorldScene extends Phaser.Scene {
       if (q === 1) this.setCompassTargetByKind('res_wolle', 'Wollkorb an der Koppel');
       else if (q === 2) state.compassText = '🔨 Drücke C -> Segeltuch weben!';
       else if (q === 3) this.setCompassTargetByBuilding('hafen_werft', 'Bauplatz Schiffswerft von Piräus');
-      else if (q === 4) this.setCompassTargetByKind('res_ton', 'Töpferton & Amphore (Taste C)');
+      else if (q === 4) this.setCompassTargetByKind('res_ton', 'Töpferton am Meeresufer (Taste C)');
       else if (q === 5) state.compassText = '🔨 Drücke C -> Heilige Fackel binden!';
       else if (q === 6) this.setCompassTargetByKind('colony_ship', 'Kolonistenschiff am Hafen');
     } else if (ch === 3) {

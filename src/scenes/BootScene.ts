@@ -35,6 +35,7 @@ export const GREEK_WORLD_SPRITES = [
   'campfire_stone',
   'chest_ornate',
   'cistern_pool',
+  'clay_deposit',
   'citrus_tree_lemon',
   'citrus_tree_orange',
   'cloud_puff',

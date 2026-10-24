@@ -70,6 +70,7 @@ function getScale(texKey) {
   if (texKey.startsWith('cloth_rolls')) return 0.38;
   if (texKey.startsWith('basket_')) return 0.36;
   if (texKey.startsWith('terracotta_pots')) return 0.38;
+  if (texKey.startsWith('clay_deposit')) return 1.0;
   if (texKey.startsWith('amphora_')) return 0.65;
   if (texKey.startsWith('chest_ornate')) return 0.55;
 
