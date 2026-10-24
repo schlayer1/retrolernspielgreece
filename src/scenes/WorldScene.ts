@@ -5,7 +5,7 @@ import { GREEK_RELICS } from '../data/relics';
 import { CHAPTERS } from '../data/chapters';
 import { CROP_MS, DAY_MS, state } from '../systems/GameState';
 import { decorSpec } from '../world/decor';
-import { WildlifeManager } from '../world/Wildlife';
+import { WildlifeManager, RoamingAnimal } from '../world/Wildlife';
 import { ChapterBanner } from '../ui/ChapterBanner';
 import { CompanionManager } from '../world/Companion';
 
@@ -203,9 +203,9 @@ export class WorldScene extends Phaser.Scene {
       animPrefix: 'dog-molosser',
       name: 'Argos',
       historicalBreed: 'Epirus-Molosser',
-      unlockedChapter: 2
+      unlockedChapter: 1
     });
-    if (state.chapter >= 2) {
+    if (state.chapter >= 1) {
       this.companion.unlock(startX - 24, startY);
     }
 
@@ -1068,10 +1068,34 @@ export class WorldScene extends Phaser.Scene {
       this.playerLabel.setPosition(this.player.x, this.player.y - 30);
     }
 
-    // Interaktions-Erkennung
+    // Interaktions-Erkennung mit Priorisierung
     const nearest = this.findNearestNode();
-    if (nearest && nearest.label) {
-      state.hint = nearest.label.el.textContent || 'Drücke E zum Interagieren';
+    const distNode = nearest
+      ? Phaser.Math.Distance.Between(this.player.x, this.player.y, nearest.sprite.x, nearest.sprite.y)
+      : Infinity;
+
+    const dogDist = this.companion ? this.companion.getDistanceTo(this.player.x, this.player.y) : Infinity;
+    const nearestAnimal = this.wildlife ? this.wildlife.getNearestAnimal(this.player.x, this.player.y, 48) : null;
+    const animalDist = nearestAnimal
+      ? Phaser.Math.Distance.Between(this.player.x, this.player.y, nearestAnimal.sprite.x, nearestAnimal.sprite.y)
+      : Infinity;
+
+    // Priorität für visuelle Einblendung (state.hint):
+    if (dogDist < 44 && dogDist <= distNode && dogDist <= animalDist) {
+      state.hint = '🐕 Argos (E: Streicheln)';
+    } else if (nearest && distNode <= REACH && distNode <= animalDist) {
+      state.hint = nearest.label?.el.textContent || 'Drücke E zum Interagieren';
+    } else if (nearestAnimal && animalDist <= 48) {
+      if (nearestAnimal.kind === 'goat') {
+        const hasFeed = state.count('gerste') > 0 || state.count('oliven') > 0;
+        state.hint = hasFeed
+          ? '🐐 Bergziege anlocken (E: Füttern & Zähmen)'
+          : '🐐 Bergziege (Benötigt Gerste oder Oliven)';
+      } else if (nearestAnimal.kind === 'tamed_goat') {
+        state.hint = '🐐 Zahme Bergziege (E: Streicheln)';
+      } else if (nearestAnimal.kind === 'cow') {
+        state.hint = '🐂 Auerochse (E: Beobachten)';
+      }
     } else {
       state.hint = '';
     }
@@ -1082,10 +1106,20 @@ export class WorldScene extends Phaser.Scene {
       Boolean(state.touch?.consumeAction());
 
     if (justActed && Date.now() - state.lastModalClose > 250) {
-      if (nearest) {
+      if (dogDist < 44 && dogDist <= distNode && dogDist <= animalDist) {
+        this.companion.pet();
+      } else if (nearest && distNode <= REACH && distNode <= animalDist) {
         this.interact(nearest);
-      } else {
-        this.tryTameLuredAnimal();
+      } else if (nearestAnimal && animalDist <= 48) {
+        if (nearestAnimal.kind === 'goat') {
+          this.tryTameLuredAnimal(nearestAnimal);
+        } else if (nearestAnimal.kind === 'tamed_goat') {
+          sfx.pet();
+          state.emit('toast', '🐐 Die zahme Bergziege reibt sanft ihre Hörner an deiner Hand.');
+        } else if (nearestAnimal.kind === 'cow') {
+          sfx.door();
+          state.emit('toast', '🐂 Der friedliche Auerochse kaut bedächtig auf frischem Gras.');
+        }
       }
     }
 
@@ -1100,15 +1134,34 @@ export class WorldScene extends Phaser.Scene {
     this.drawDebugOverlay();
   }
 
-  private tryTameLuredAnimal(): void {
-    const hasFeed = state.count('gerste') > 0 || state.count('oliven') > 0;
-    if (!hasFeed) return;
+  private tryTameLuredAnimal(animal: RoamingAnimal): void {
+    if (!animal || animal.kind !== 'goat') return;
+    const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, animal.sprite.x, animal.sprite.y);
+    if (dist > 52) return;
+
+    const hasGerste = state.count('gerste') > 0;
+    const hasOliven = state.count('oliven') > 0;
+    if (!hasGerste && !hasOliven) {
+      state.emit('toast', '🌾 Du benötigst Gerste oder Oliven im Beutel, um die scheue Bergziege anzulocken!');
+      return;
+    }
+
+    // Futter verbrauchen (1 Gerste oder 1 Olive)
+    if (hasGerste) {
+      state.inventory.gerste = Math.max(0, state.count('gerste') - 1);
+    } else {
+      state.inventory.oliven = Math.max(0, state.count('oliven') - 1);
+    }
+    state.emit('inventory');
+
+    this.wildlife.tameAnimal(animal);
     state.goatTamed = true;
     state.add('wolle', 2);
     state.add('ziegenkaese', 1);
     state.bump('wolle_gathered', 2);
     sfx.quest();
     state.emit('toast', '🐐 Bergziege gefüttert & gezähmt: +2 Wolle & +1 Ziegenkäse!');
+    this.persist();
   }
 
   private rescueAtCampfire(): void {

@@ -5,6 +5,7 @@
 
 import Phaser from 'phaser';
 import { sfx } from '../audio/sound';
+import { state } from '../systems/GameState';
 
 export interface CompanionConfig {
   key: string;              // 'dog_molosser'
@@ -48,6 +49,15 @@ export class CompanionManager {
 
   public getSprite(): Phaser.GameObjects.Sprite | null {
     return this.sprite;
+  }
+
+  public isAvailable(): boolean {
+    return this.isUnlocked && !!this.sprite && this.sprite.active;
+  }
+
+  public getDistanceTo(x: number, y: number): number {
+    if (!this.isAvailable() || !this.sprite) return Infinity;
+    return Phaser.Math.Distance.Between(this.sprite.x, this.sprite.y, x, y);
   }
 
   public update(player: Phaser.GameObjects.Sprite, targets: any[], deltaMs: number): void {
@@ -128,9 +138,10 @@ export class CompanionManager {
     this.state = 'petting';
 
     this.playAnim(`${this.prefix}-wag`);
-    try { sfx.door(); } catch (e) {}
+    try { sfx.pet(); } catch (e) { try { sfx.pickup(); } catch (_) {} }
 
     this.showEmote('❤️ *Wedel! Freut sich über deine Zuwendung*');
+    state.emit('toast', `🐕 Du streichelst deinen treuen Molosserhund ${this.config.name}! ❤️ *Wedel*`);
 
     this.scene.time.delayedCall(2200, () => {
       this.state = 'following';

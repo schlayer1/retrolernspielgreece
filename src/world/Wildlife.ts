@@ -94,6 +94,27 @@ export class WildlifeManager {
     return animal;
   }
 
+  public getNearestAnimal(x: number, y: number, maxDist = 48): RoamingAnimal | null {
+    let best: RoamingAnimal | null = null;
+    let bestDist = maxDist;
+    for (const a of this.animals) {
+      if (!a.sprite || !a.sprite.active) continue;
+      const d = Phaser.Math.Distance.Between(x, y, a.sprite.x, a.sprite.y);
+      if (d < bestDist) {
+        bestDist = d;
+        best = a;
+      }
+    }
+    return best;
+  }
+
+  public tameAnimal(animal: RoamingAnimal): void {
+    animal.kind = 'tamed_goat';
+    animal.speed = 12;
+    animal.state = 'idle';
+    animal.timer = 4.0;
+  }
+
   public removeBySprite(sprite: Phaser.GameObjects.Sprite): void {
     this.animals = this.animals.filter((a) => a.sprite !== sprite);
   }
