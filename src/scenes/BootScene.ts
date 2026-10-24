@@ -45,7 +45,10 @@ export const GREEK_WORLD_SPRITES = [
   'fire_altar_gold',
   'fishing_boat',
   'fountain_round',
-  'fruit_basket_figs',
+  'basket_figs',
+  'cloth_rolls',
+  'basket_olives',
+  'basket_oranges',
   'greek_villa',
   'lighthouse_pharos',
   'lion_fountain',
@@ -169,6 +172,10 @@ export class BootScene extends Phaser.Scene {
     this.load.spritesheet('animal_goat', 'assets/gfx/goat.png', {
       frameWidth: 80,
       frameHeight: 80,
+    });
+    this.load.spritesheet('dog_molosser', 'assets/fauna/dog_molosser.png', {
+      frameWidth: 32,
+      frameHeight: 32,
     });
 
     // 5. Didaktische 16-Bit-Item-Icons & 5 Leit-Relikte
@@ -313,6 +320,15 @@ export class BootScene extends Phaser.Scene {
       frameRate: 10,
       repeat: -1,
     });
+
+    // 🐾 Molosser-Hund (dog_molosser)
+    this.anims.create({ key: 'dog-molosser-idle', frames: [{ key: 'dog_molosser', frame: 0 }], frameRate: 1 });
+    this.anims.create({ key: 'dog-molosser-walk-down', frames: this.anims.generateFrameNumbers('dog_molosser', { start: 0, end: 3 }), frameRate: 6, repeat: -1 });
+    this.anims.create({ key: 'dog-molosser-walk-right', frames: this.anims.generateFrameNumbers('dog_molosser', { start: 4, end: 7 }), frameRate: 6, repeat: -1 });
+    this.anims.create({ key: 'dog-molosser-walk-up', frames: this.anims.generateFrameNumbers('dog_molosser', { start: 8, end: 11 }), frameRate: 6, repeat: -1 });
+    this.anims.create({ key: 'dog-molosser-sniff', frames: this.anims.generateFrameNumbers('dog_molosser', { start: 12, end: 15 }), frameRate: 4, repeat: -1 });
+    this.anims.create({ key: 'dog-molosser-sit', frames: this.anims.generateFrameNumbers('dog_molosser', { start: 16, end: 19 }), frameRate: 3, repeat: -1 });
+    this.anims.create({ key: 'dog-molosser-wag', frames: this.anims.generateFrameNumbers('dog_molosser', { start: 20, end: 23 }), frameRate: 5, repeat: -1 });
 
     const chParam = Number(params.get('kapitel'));
     if (chParam >= 1 && chParam <= 10) {

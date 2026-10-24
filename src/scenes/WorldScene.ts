@@ -2,20 +2,23 @@ import Phaser from 'phaser';
 import { bgm, sfx } from '../audio/sound';
 import { GreekBuildingDef, GreekItemId } from '../data/items';
 import { GREEK_RELICS } from '../data/relics';
+import { CHAPTERS } from '../data/chapters';
 import { CROP_MS, DAY_MS, state } from '../systems/GameState';
 import { decorSpec } from '../world/decor';
 import { WildlifeManager } from '../world/Wildlife';
+import { ChapterBanner } from '../ui/ChapterBanner';
+import { CompanionManager } from '../world/Companion';
 
 const TILE = 16;
-const MAP_W = 52; // 832 px
-const MAP_H = 36; // 576 px
+const MAP_W = 100; // 1600 px
+const MAP_H = 80;  // 1280 px
 const SPEED = 98;
 const REACH = 48;
 const REGROW_MS = 18_000;
 const LABEL_PROXIMITY_PX = 44;
 
-/** Das Ägäische Meer liegt im Osten der Karte (Spalten 41..51, ab Zeile 12). */
-const AEGEAN_SEA = { x: 41, y: 12, w: 11, h: 24 };
+/** Das Ägäische Meer liegt im Osten / Südosten der Karte (Spalten 74..99, ab Zeile 24). */
+const AEGEAN_SEA = { x: 74, y: 24, w: 26, h: 56 };
 
 type Kind =
   | 'npc_nikolaos'
@@ -106,6 +109,8 @@ export class WorldScene extends Phaser.Scene {
   private nightOverlay!: Phaser.GameObjects.Rectangle;
   private waterShimmers: Phaser.GameObjects.Rectangle[] = [];
   private wildlife!: WildlifeManager;
+  private banner!: ChapterBanner;
+  private companion!: CompanionManager;
   private saveTimer = 0;
   private sleeping = false;
   private transitioningOlymp = false;
@@ -124,6 +129,15 @@ export class WorldScene extends Phaser.Scene {
     this.sleeping = false;
     this.transitioningOlymp = false;
     this.wildlife = new WildlifeManager(this);
+    this.banner = new ChapterBanner();
+    const chDef = CHAPTERS[state.chapter - 1] || CHAPTERS[0];
+    if (chDef) {
+      this.banner.show({
+        chapterNumber: state.chapter,
+        title: chDef.title,
+        subtitle: `${chDef.period} · Mentor: ${chDef.mentor}`
+      });
+    }
 
     const params = new URLSearchParams(location.search);
     this.debugMode = params.get('debug') === '1';
@@ -171,17 +185,29 @@ export class WorldScene extends Phaser.Scene {
     this.placeGreekRelics();
 
     // 6. Spieler-Spawn
-    const startX = state.playerX || 415;
-    const startY = state.playerY || 310;
+    const startX = state.playerX || 800;
+    const startY = state.playerY || 620;
     const texKey =
       state.playerGender === 'female' ? 'player_greek_female' : 'player_greek_male';
 
     this.player = this.physics.add.sprite(startX, startY, texKey, 0);
-    this.player.body!.setSize(8, 6).setOffset(4, 24);
+    this.player.setOrigin(0.5, 0.9);
+    this.player.body!.setSize(8, 6).setOffset(4, 26);
     this.player.setCollideWorldBounds(true);
     this.physics.world.setBounds(0, 0, MAP_W * TILE, MAP_H * TILE);
     this.physics.add.collider(this.player, this.obstacles);
-    this.playerLabel = this.addLabel(startX, startY - 22, state.playerName, '#fde047', true);
+    this.playerLabel = this.addLabel(startX, startY - 32, state.playerName, '#fde047', true);
+
+    this.companion = new CompanionManager(this, {
+      key: 'dog_molosser',
+      animPrefix: 'dog-molosser',
+      name: 'Argos',
+      historicalBreed: 'Epirus-Molosser',
+      unlockedChapter: 2
+    });
+    if (state.chapter >= 2) {
+      this.companion.unlock(startX - 24, startY);
+    }
 
     this.cameras.main.setBounds(0, 0, MAP_W * TILE, MAP_H * TILE);
     this.cameras.main.startFollow(this.player, true, 0.15, 0.15);
@@ -216,13 +242,31 @@ export class WorldScene extends Phaser.Scene {
   }
 
   private pathDistance(px: number, py: number): number {
-    let minD = 999;
-    minD = Math.min(minD, this.distToSegment(px, py, 415, 300, 260, 390) - 9);
-    minD = Math.min(minD, this.distToSegment(px, py, 415, 290, 650, 405) - 9);
-    minD = Math.min(minD, this.distToSegment(px, py, 415, 250, 415, 130) - 10);
-    minD = Math.min(minD, this.distToSegment(px, py, 360, 250, 185, 175) - 8);
-    minD = Math.min(minD, this.distToSegment(px, py, 450, 230, 610, 155) - 8);
-    return minD;
+    const roads = [
+      // Agora -> Akropolis (Panathenäischer Weg)
+      [800, 540, 800, 240],
+      // Agora -> Sparta & Peloponnes
+      [740, 580, 260, 550],
+      // Agora -> Hafen von Piräus
+      [890, 640, 1220, 700],
+      // Agora -> Delphi & Olymp-Aufstieg
+      [870, 540, 1160, 220],
+      // Agora -> Attika-Haine & Ackerparzellen
+      [800, 670, 780, 870],
+      // Sparta -> Thermopylen-Gebirgspass
+      [260, 500, 280, 200],
+      // Akropolis -> Thermopylen-Nordstraße
+      [740, 200, 360, 160],
+      // Hafen Piräus -> Kriegshafen Salamis
+      [1220, 720, 1240, 820],
+    ];
+
+    let minDist = 999999;
+    for (const [x1, y1, x2, y2] of roads) {
+      const d = this.distToSegment(px, py, x1, y1, x2, y2);
+      if (d < minDist) minDist = d;
+    }
+    return minDist;
   }
 
   private buildGreekGround(): void {
@@ -232,6 +276,7 @@ export class WorldScene extends Phaser.Scene {
 
     if (this.textures.exists(texKey)) {
       this.add.image(0, 0, texKey).setOrigin(0, 0).setDepth(0);
+      this.setupWaterAndBoundaries();
       return;
     }
 
@@ -240,7 +285,7 @@ export class WorldScene extends Phaser.Scene {
     const ctx = rt.getContext();
     ctx.imageSmoothingEnabled = false;
 
-    // 4x4 Bayer-Dither-Matrix für organische 16-Bit-Übergänge
+    // 4x4 Bayer-Dither-Matrix für weiche, 16-Bit-authentische Übergänge
     const bayer4 = [
       [0 / 16, 8 / 16, 2 / 16, 10 / 16],
       [12 / 16, 4 / 16, 14 / 16, 6 / 16],
@@ -286,20 +331,27 @@ export class WorldScene extends Phaser.Scene {
         const ty = Math.floor(y / TILE);
         const dither = bayer4[(y >> 1) & 3][(x >> 1) & 3] - 0.5;
 
-        const inSea =
-          tx >= AEGEAN_SEA.x &&
-          ty >= AEGEAN_SEA.y &&
-          tx - AEGEAN_SEA.x + (ty - AEGEAN_SEA.y) * 0.35 >= 2.2;
+        // Küstenlinie des Ägäischen Meeres (im Südosten ab Spalte ~74 mit sanfter Brandungswelle)
+        const coastLineX = 75 * TILE + Math.sin(y * 0.012) * 50 - (y > 720 ? (y - 720) * 0.12 : 0);
+        const inSea = x >= coastLineX && ty >= AEGEAN_SEA.y;
 
-        const inHarborPier = !inSea && tx >= 37 && tx <= 44 && ty >= 21 && ty <= 29;
-        const inAcropolis = tx >= 21 && tx <= 33 && ty >= 3 && ty <= 11;
-        const inAgora = tx >= 21 && tx <= 34 && ty >= 13 && ty <= 22;
-        const inAlexandria = !inSea && tx >= 31 && tx <= 39 && ty >= 19 && ty <= 27;
-        const inSpartaRock = tx <= 19 && ty <= 15;
-        const inDelphi = tx >= 34 && ty <= 11;
+        // Regionen
+        const inHarborPier = !inSea && tx >= 73 && tx <= 80 && ty >= 42 && ty <= 48;
+        const distAgora = Math.hypot(x - 800, y - 608);
+        const inAgora =
+          distAgora < 145 + dither * 14 ||
+          (x >= 780 && x <= 980 && y >= 460 && y <= 830 && distAgora < 200 + dither * 12);
+
+        const dxAkro = Math.max(0, Math.abs(x - 800) - 110);
+        const dyAkro = Math.max(0, Math.abs(y - 160) - 75);
+        const inAcropolis = Math.hypot(dxAkro, dyAkro) < 32 + dither * 10;
+
+        const inDelphi = Math.hypot(x - 1180, y - 180) < 115 + dither * 14;
+        const inSpartaRock = Math.hypot(x - 240, y - 540) < 130 + dither * 14;
+        const inThermoRock = Math.hypot(x - 280, y - 160) < 95 + dither * 12;
 
         if (inSea) {
-          const deep = tx >= AEGEAN_SEA.x + 3 && ty >= AEGEAN_SEA.y + 3;
+          const deep = x >= coastLineX + 64 && ty >= AEGEAN_SEA.y + 4;
           const r = deep ? (dither > 0 ? 3 : 2) : dither > 0 ? 14 : 56;
           const g = deep ? (dither > 0 ? 105 : 132) : dither > 0 ? 165 : 189;
           const b = deep ? (dither > 0 ? 161 : 199) : dither > 0 ? 233 : 248;
@@ -321,32 +373,31 @@ export class WorldScene extends Phaser.Scene {
 
         if (inHarborPier) {
           bx = 3;
-          by = 3;
+          by = 3; // Holzbohlen & Hafenkai
         } else if (inAcropolis || inDelphi) {
           bx = 7;
           by = 1; // Helle Marmorterrasse
-        } else if (inAgora || inAlexandria) {
+        } else if (inAgora) {
           bx = 6;
           by = 1; // Porphyr- & Kalksteinpflaster der Agora
-        } else if (inSpartaRock) {
+        } else if (inSpartaRock || inThermoRock) {
           bx = 3;
-          by = 1; // Rauer Schiefer & Fels
+          by = 1; // Rauer Schiefer & Gebirgsfels
+        } else if (x < coastLineX && x >= coastLineX - (38 + dither * 12) && ty >= AEGEAN_SEA.y - 2) {
+          bx = 2;
+          by = 1; // Feiner goldener Sandstrand
         } else {
-          const distBeach = Math.hypot(tx - 40, ty - 24);
-          if (distBeach < 4.2 + dither * 1.8 && tx >= 36) {
-            bx = 2;
-            by = 1; // Goldener Sandstrand
-          } else {
-            const wave = Math.sin(x * 0.024 + y * 0.019) * 0.5 + Math.cos(x * 0.017 - y * 0.023) * 0.5;
-            bx = wave + dither * 0.55 > 0.3 ? 0 : 1;
-            by = 1;
-          }
+          // Organische Wiesen & Olivenhaine
+          const wave = Math.sin(x * 0.016 + y * 0.014) * 0.5 + Math.cos(x * 0.012 - y * 0.018) * 0.5;
+          bx = wave + dither * 0.5 > 0.28 ? 0 : 1;
+          by = 1;
         }
 
+        // Pfad-Abtastung (ersetzt unschöne Vektorbögen)
         const pDist = this.pathDistance(x, y);
-        if (pDist < dither * 6) {
+        if (pDist < 12 + dither * 5.5 && !inAcropolis && !inHarborPier) {
           bx = 1;
-          by = 0; // Warmer mediterraner Lehm-/Erdweg
+          by = 0; // Warmer mediterraner Naturpfad
         }
 
         const [r, g, b] = sampleBlock(bx, by, x, y);
@@ -363,52 +414,30 @@ export class WorldScene extends Phaser.Scene {
     }
 
     ctx.putImageData(out, 0, 0);
-
-    // Organisch geschwungene antike Pflasterstraßen
-    const drawRoad = (x0: number, y0: number, x1: number, y1: number, width = 16) => {
-      const steps = Math.max(20, Math.hypot(x1 - x0, y1 - y0) / 3);
-      for (let i = 0; i <= steps; i++) {
-        const t = i / steps;
-        const rx = x0 + (x1 - x0) * t + Math.sin(t * Math.PI * 2) * 4;
-        const ry = y0 + (y1 - y0) * t + Math.cos(t * Math.PI * 2) * 2;
-        ctx.fillStyle = 'rgba(217, 197, 160, 0.45)';
-        ctx.beginPath();
-        ctx.arc(rx, ry, width / 2, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = 'rgba(231, 216, 188, 0.6)';
-        ctx.beginPath();
-        ctx.arc(rx, ry, width / 2 - 2, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    };
-
-    drawRoad(415, 300, 260, 390, 18); // Agora -> Attika-Felder & Olivenhain
-    drawRoad(415, 290, 650, 405, 18); // Agora -> Hafen von Piräus
-    drawRoad(415, 250, 415, 130, 20); // Agora -> Heilige Straße zur Akropolis
-    drawRoad(360, 250, 185, 175, 16); // Agora -> Sparta & Thermopylen
-    drawRoad(450, 230, 610, 155, 16); // Agora -> Delphi & Olymp-Portal
-
     rt.refresh();
     this.add.image(0, 0, texKey).setOrigin(0, 0).setDepth(0);
+    this.setupWaterAndBoundaries();
+  }
 
-    // Animierte Wellen auf dem Ägäischen Meer
-    for (let wy = AEGEAN_SEA.y + 2; wy < MAP_H - 1; wy += 2) {
-      for (let wx = AEGEAN_SEA.x + 2; wx < MAP_W - 1; wx += 3) {
+  private setupWaterAndBoundaries(): void {
+    // Animierte Wellenschimmer auf dem Meer
+    for (let wy = AEGEAN_SEA.y + 4; wy < MAP_H - 2; wy += 3) {
+      for (let wx = AEGEAN_SEA.x + 4; wx < MAP_W - 2; wx += 4) {
         const sx = wx * TILE + 8;
         const sy = wy * TILE + 8;
         const shimmer = this.add
-          .rectangle(sx, sy, 10, 2, 0xbae6fd, 0.55)
+          .rectangle(sx, sy, 12, 2, 0xbae6fd, 0.55)
           .setDepth(1);
         this.waterShimmers.push(shimmer);
       }
     }
 
-    // Unsichtbare Wasser-Barriere für das tiefere Meer
+    // Unsichtbare Barriere für tiefes Wasser
     const seaBlock = this.add.rectangle(
-      (AEGEAN_SEA.x + 3) * TILE + 64,
-      (AEGEAN_SEA.y + 2) * TILE + 180,
-      128,
-      360,
+      (AEGEAN_SEA.x + 5) * TILE + 80,
+      (AEGEAN_SEA.y + 4) * TILE + 240,
+      200,
+      600,
       0x000000,
       0,
     );
@@ -450,9 +479,10 @@ export class WorldScene extends Phaser.Scene {
     ) as Phaser.Physics.Arcade.Sprite;
 
     s.setScale(scale);
+    s.setOrigin(0.5, 0.9);
     const dispW = fw * scale;
     const dispH = fh * scale;
-    s.setDepth(y + dispH / 2 + (opts?.depthOffset ?? 0));
+    s.setDepth(y + (opts?.depthOffset ?? 0));
 
     const b = s.body as Phaser.Physics.Arcade.StaticBody | null;
     if (b) {
@@ -460,18 +490,16 @@ export class WorldScene extends Phaser.Scene {
         s.refreshBody();
         const bw = Math.max(6, spec.hb.w);
         const bh = Math.max(4, spec.hb.h);
-        const footY = y + dispH / 2;
         b.setSize(bw, bh, false);
-        b.setOffset((dispW - bw) / 2, dispH - bh - spec.hb.by);
-        b.position.set(x - bw / 2, footY - spec.hb.by - bh);
+        b.setOffset((dispW - bw) / 2, dispH * 0.9 - bh - spec.hb.by);
+        b.position.set(x - bw / 2, y - spec.hb.by - bh);
       } else if (wantBody) {
         s.refreshBody();
         const bw = Math.max(8, Math.round(dispW * 0.65));
-        const bh = Math.max(6, Math.round(dispH * 0.32));
-        const footY = y + dispH / 2;
+        const bh = Math.max(6, Math.round(dispH * 0.28));
         b.setSize(bw, bh, false);
-        b.setOffset((dispW - bw) / 2, dispH - bh - 2);
-        b.position.set(x - bw / 2, footY - 2 - bh);
+        b.setOffset((dispW - bw) / 2, dispH * 0.9 - bh - 2);
+        b.position.set(x - bw / 2, y - 2 - bh);
       } else {
         b.enable = false;
       }
@@ -480,92 +508,94 @@ export class WorldScene extends Phaser.Scene {
   }
 
   private scatterGreekWorld(): void {
-    // 1. Akropolis im Norden: Parthenon-Tempel, Statuen & Dorische Säulen
-    this.placeDecor('parthenon', 425, 78);
-    this.placeDecor('statue_athena_shrine', 355, 92);
-    this.placeDecor('statue_nike_gold', 492, 92);
-    this.placeDecor('column_doric', 380, 125);
-    this.placeDecor('column_doric', 470, 125);
-    this.placeDecor('ruined_column', 445, 135);
-    this.placeDecor('cypress_tall_1', 320, 85);
-    this.placeDecor('cypress_tall_2', 530, 85);
+    // 1. Akropolis im Norden (Erhabenes Plateau bei Y=80..260)
+    this.placeDecor('parthenon', 800, 140);
+    this.placeDecor('statue_athena_shrine', 720, 150);
+    this.placeDecor('statue_nike_gold', 880, 150);
+    this.placeDecor('column_doric', 750, 220);
+    this.placeDecor('column_doric', 850, 200);
+    this.placeDecor('ruined_column', 890, 250);
+    this.placeDecor('cypress_tall_1', 670, 140);
+    this.placeDecor('cypress_tall_2', 930, 140);
 
-    // 2. Athen: Agora, Stoa, Brunnen & Agora-Marktstände (Kapitel 1 & 4)
-    this.placeDecor('stoa_colonnade', 385, 255);
-    this.placeDecor('lion_fountain', 475, 295);
-    this.placeDecor('marble_bench', 445, 295);
-    this.placeDecor('statue_philosopher', 390, 230);
-    this.placeDecor('greek_villa', 345, 285);
-    this.placeDecor('terracotta_pots', 365, 305);
-    this.placeDecor('market_stall_blue', 435, 335);
-    this.placeDecor('market_stall_red', 465, 335);
-    this.placeDecor('fruit_basket_figs', 420, 340);
-    this.placeDecor('bougainvillea_pink', 320, 290);
-    this.placeDecor('bougainvillea_orange', 500, 280);
+    // 2. Athen: Weitläufige Agora (Platz-Zentrum 800, 608)
+    // Westliche Agora-Flanke (Civic & Fountain Terrace)
+    this.placeDecor('stoa_colonnade', 700, 480);
+    this.placeDecor('terracotta_pots', 790, 480);
+    this.placeDecor('bougainvillea_pink', 610, 480);
+    this.placeDecor('lion_fountain', 670, 580);
+    this.placeDecor('marble_bench', 670, 680); // 100px südlich vom Brunnen, herrlicher Freiraum!
+    this.placeDecor('greek_villa', 550, 560); // Außerhalb der Agora an der westlichen Wohnstraße
 
-    // 3. Mediterrane Baumgruppen im Attika-Tal
-    this.placeDecor('cypress_tall_1', 230, 340);
-    this.placeDecor('cypress_tall_2', 250, 350);
-    this.placeDecor('citrus_tree_lemon', 190, 380);
-    this.placeDecor('citrus_tree_orange', 310, 410);
+    // Östliche Agora-Flanke (Bazaar & Marktstände)
+    this.placeDecor('statue_philosopher', 880, 480);
+    this.placeDecor('market_stall_blue', 950, 480); // Blaue Marktbude (Tuch & Seide)
+    this.placeDecor('cloth_rolls', 1025, 480); // Auslage: Gewebte Stoffballen & Teppiche
+    this.placeDecor('market_stall_red', 950, 800);  // 160px südlich vom Agora-Hauptstand!
+    this.placeDecor('bougainvillea_orange', 1045, 800);
 
-    // 4. Sparta im Nordwesten (K3+)
+    // 3. Attika-Haine & mediterrane Baumgruppen im Süden
+    this.placeDecor('cypress_tall_1', 610, 820);
+    this.placeDecor('cypress_tall_2', 1110, 860);
+    this.placeDecor('citrus_tree_lemon', 560, 900);
+    this.placeDecor('citrus_tree_orange', 1010, 920);
+    this.placeDecor('olive_tree_1', 620, 980);
+    this.placeDecor('olive_tree_2', 920, 980);
+
+    // 4. Sparta im Westen (K3+)
     if (state.chapter >= 3) {
-      this.placeDecor('spartan_barracks', 95, 95);
-      this.placeDecor('spartan_spear_rack', 155, 95);
-      this.placeDecor('spartan_helmet_rack', 200, 95);
-      this.placeDecor('war_drum', 135, 132);
+      this.placeDecor('spartan_barracks', 160, 450);
+      this.placeDecor('spartan_spear_rack', 260, 450);
+      this.placeDecor('spartan_helmet_rack', 340, 450);
+      this.placeDecor('war_drum', 320, 540);
     }
 
-    // 5. Delphi & Aufstieg zum Berg Olymp im Nordosten (K5+)
+    // 5. Delphi & Aufstieg zum Olymp im Nordosten (K5+)
     if (state.chapter >= 5) {
-      this.placeDecor('tholos_delphi', 565, 92);
-      this.placeDecor('brazier_tripod', 530, 108);
-      this.placeDecor('column_ionic', 630, 75);
-      this.placeDecor('column_ionic', 690, 75);
+      this.placeDecor('tholos_delphi', 1160, 160);
+      this.placeDecor('brazier_tripod', 1110, 170);
+      this.placeDecor('column_ionic', 1220, 140);
+      this.placeDecor('column_ionic', 1270, 140);
     }
 
     // 6. Südosten: Küste & Hafen von Piräus
-    this.placeDecor('fishing_boat', 695, 420);
-    this.placeDecor('marble_bench', 645, 415);
-    this.placeDecor('statue_bronze_hoplite', 495, 330);
+    this.placeDecor('marble_bench', 1200, 720);
+    this.placeDecor('statue_bronze_hoplite', 1180, 660);
 
-    // 7. Autonome mediterrane Fauna mit proportionaler Skalierung nach Skill-Standard 1.1
-    // Ziegen hüfthoch (~21px) bei 80px Frame -> scale: 0.24
-    const goat1 = this.add.sprite(145, 465, 'animal_goat').setScale(0.24);
+    // 7. Autonome mediterrane Fauna (angepasst an 100x80)
+    const goat1 = this.add.sprite(360, 840, 'animal_goat').setScale(0.24).setOrigin(0.5, 0.9).setDepth(840);
     this.wildlife.addAnimal({
       kind: 'goat',
       sprite: goat1,
-      bounds: { minX: 90, maxX: 240, minY: 420, maxY: 510 },
+      bounds: { minX: 280, maxX: 460, minY: 780, maxY: 940 },
       idleAnim: 'idle-goat',
       walkAnim: 'walk-goat',
     });
-    const goat2 = this.add.sprite(185, 485, 'animal_goat').setScale(0.24);
+    const goat2 = this.add.sprite(420, 880, 'animal_goat').setScale(0.24).setOrigin(0.5, 0.9).setDepth(880);
     this.wildlife.addAnimal({
       kind: 'goat',
       sprite: goat2,
-      bounds: { minX: 120, maxX: 260, minY: 440, maxY: 520 },
+      bounds: { minX: 320, maxX: 500, minY: 800, maxY: 960 },
       idleAnim: 'idle-goat',
       walkAnim: 'walk-goat',
     });
-    // Rinder (~30px) bei 80px Frame -> scale: 0.35
-    const cow1 = this.add.sprite(110, 440, 'animal_cow').setScale(0.35);
+    const cow1 = this.add.sprite(320, 920, 'animal_cow').setScale(0.35).setOrigin(0.5, 0.9).setDepth(920);
     this.wildlife.addAnimal({
       kind: 'cow',
       sprite: cow1,
-      bounds: { minX: 70, maxX: 190, minY: 400, maxY: 480 },
+      bounds: { minX: 220, maxX: 400, minY: 840, maxY: 1020 },
       idleAnim: 'idle-cow',
       walkAnim: 'walk-cow',
     });
 
-    // Sperrliste für Wildlife: Tiere laufen nicht in Gebäude, Zisternen oder Feuer
-    this.wildlife.addObstacle(230, 365, 32); // Olivenpresse
-    this.wildlife.addObstacle(265, 430, 24); // Zisterne
-    this.wildlife.addObstacle(215, 175, 26); // Lagerfeuer
-    this.wildlife.addObstacle(345, 285, 30); // Griechische Villa
-    this.wildlife.addObstacle(445, 325, 28); // Agora-Stand
+    // Hindernisse für Wildlife
+    this.wildlife.addObstacle(720, 920, 36); // Olivenpresse
+    this.wildlife.addObstacle(720, 850, 28); // Zisterne
+    this.wildlife.addObstacle(240, 540, 30); // Lagerfeuer
+    this.wildlife.addObstacle(550, 560, 34); // Villa
+    this.wildlife.addObstacle(950, 640, 36); // Agora-Stand
 
-    // 8. Schmetterlinge & Libellen über den Hainen & Küsten
+    // 8. Fliegende Schmetterlinge & Libellen über der 100x80-Welt
     this.wildlife.spawnAmbientFliers(MAP_W * TILE, MAP_H * TILE);
   }
 
@@ -582,9 +612,10 @@ export class WorldScene extends Phaser.Scene {
   ): Node {
     const spr = this.add.sprite(x, y, tex, frame);
     spr.setScale(scale);
-    spr.setDepth(y + spr.displayHeight * 0.35);
+    spr.setOrigin(0.5, 0.9);
+    spr.setDepth(y);
     const label = labelText
-      ? this.addLabel(x, y - spr.displayHeight * 0.5 - 6, labelText, color, alwaysVisible)
+      ? this.addLabel(x, y - spr.displayHeight * 0.9 - 8, labelText, color, alwaysVisible)
       : undefined;
     const node: Node = { kind, sprite: spr, label, readyAt: 0 };
     this.nodes.push(node);
@@ -592,12 +623,12 @@ export class WorldScene extends Phaser.Scene {
   }
 
   private placeGreekResources(): void {
-    // Olivenbäume (geben Oliven + Olivenholz)
+    // Olivenbäume im fruchtbaren Attika-Tal
     const oliveSpots = [
-      [115, 365],
-      [165, 395],
-      [95, 420],
-      [215, 435],
+      [640, 860],
+      [680, 940],
+      [640, 1000],
+      [880, 940],
     ];
     for (const [ox, oy] of oliveSpots) {
       this.addNode('res_oliven', ox, oy, 'olive_tree_1', undefined, '🫒 Olivenbaum', '#a3e635', 0.95);
@@ -605,9 +636,9 @@ export class WorldScene extends Phaser.Scene {
 
     // Kiefernholz / Bauholz
     const timberSpots = [
-      [85, 295],
-      [145, 315],
-      [245, 295],
+      [520, 740],
+      [580, 800],
+      [640, 760],
     ];
     for (const [tx, ty] of timberSpots) {
       this.addNode('res_holz', tx, ty, 'olive_tree_2', undefined, '🪵 Kiefernholz', '#fde047', 0.9);
@@ -615,39 +646,39 @@ export class WorldScene extends Phaser.Scene {
 
     // Heller Kalkstein
     const limestoneSpots = [
-      [120, 250],
-      [185, 255],
-      [255, 245],
+      [360, 480],
+      [420, 520],
+      [480, 460],
     ];
     for (const [lx, ly] of limestoneSpots) {
       this.addNode('res_kalkstein', lx, ly, 'objects', 'bigrock', '🪨 Kalkstein', '#e2e8f0', 0.9);
     }
 
-    // Taygetos-Eisenerz (im Norden bei Sparta)
+    // Taygetos-Eisenerz (beim spartanischen Gebirge)
     const ironSpots = [
-      [60, 155],
-      [65, 205],
-      [115, 215],
+      [140, 440],
+      [180, 400],
+      [120, 500],
     ];
     for (const [ix, iy] of ironSpots) {
       const n = this.addNode('res_eisenerz', ix, iy, 'objects', 'bigrock', '⛏️ Taygetos-Eisenerz', '#cbd5e1', 0.88);
       n.sprite.setTint(0x64748b);
     }
 
-    // Laureion-Silbererz (Mitte/Süden bei Athen)
+    // Laureion-Silbererz (Süden bei Athen)
     const silverSpots = [
-      [355, 385],
-      [395, 415],
+      [880, 780],
+      [940, 820],
     ];
     for (const [sx, sy] of silverSpots) {
       const n = this.addNode('res_silbererz', sx, sy, 'objects', 'bigrock', '🥈 Laureion-Silbererz', '#7dd3fc', 0.88);
       n.sprite.setTint(0xbae6fd);
     }
 
-    // Parischer Marmor (nahe Akropolis & Delphi)
+    // Parischer Marmor (Akropolis-Nordflanke & Delphi)
     const marbleSpots = [
-      [515, 165],
-      [555, 195],
+      [880, 220],
+      [940, 260],
     ];
     for (const [mx, my] of marbleSpots) {
       const n = this.addNode('res_marmor', mx, my, 'objects', 'bigrock', '🏛️ Weißer Marmor', '#ffffff', 0.9);
@@ -655,43 +686,44 @@ export class WorldScene extends Phaser.Scene {
     }
 
     // Attischer Töpferton
-    this.addNode('res_ton', 315, 435, 'amphora_black_painted', undefined, '🏺 Attischer Töpferton', '#fb923c', 0.95);
-    this.addNode('res_ton', 345, 465, 'amphora_black_painted', undefined, '🏺 Attischer Töpferton', '#fb923c', 0.95);
+    this.addNode('res_ton', 600, 880, 'amphora_black_painted', undefined, '🏺 Attischer Töpferton', '#fb923c', 0.95);
+    this.addNode('res_ton', 570, 940, 'amphora_black_painted', undefined, '🏺 Attischer Töpferton', '#fb923c', 0.95);
 
-    // Schaf- & Ziegenwolle an der Koppel
-    this.addNode('res_wolle', 155, 505, 'stone_well', undefined, '🐑 Hirten-Wollkorb', '#f8fafc', 0.78);
+    // Schaf- & Ziegenwolle an der Weide
+    this.addNode('res_wolle', 340, 860, 'stone_well', undefined, '🐑 Hirten-Wollkorb', '#f8fafc', 0.78);
 
     // Steinerne Zisterne (Quellwasser für die 6 Ackerbeete)
-    this.addNode('cistern_water', 265, 430, 'cistern_pool', undefined, '💧 Zisterne: Quellwasser', '#38bdf8', 0.9);
+    this.addNode('cistern_water', 720, 850, 'cistern_pool', undefined, '💧 Zisterne: Quellwasser', '#38bdf8', 0.9);
 
     // Fischgründe am Ägäis-Strand
-    this.addNode('fish_spot', 695, 495, 'fishing_boat', undefined, '🐟 Ägäis-Fischgrund', '#38bdf8', 0.85);
+    this.addNode('fish_spot', 1220, 820, 'fishing_boat', undefined, '🐟 Ägäis-Fischgrund', '#38bdf8', 0.85);
 
     // Spartanisches Lagerfeuer & Kochstelle
-    this.addNode('campfire_cook', 215, 175, 'campfire_stone', undefined, '🔥 Lagerfeuer & Kessel', '#fb923c', 0.95);
+    this.addNode('campfire_cook', 240, 540, 'campfire_stone', undefined, '🔥 Lagerfeuer & Kessel', '#fb923c', 0.95);
 
-    // Agora-Handelsstand (Taste H oder E)
-    this.addNode('agora_stall', 445, 325, 'agora_stall_olives', undefined, '⚖️ Agora-Handel', '#fde047', 0.92);
+    // Agora-Handelsstand (Ostflanke der Agora)
+    this.addNode('agora_stall', 950, 640, 'agora_stall_olives', undefined, '⚖️ Agora-Handel', '#fde047', 0.92);
+    this.placeDecor('basket_figs', 1025, 640);
   }
 
   private placeGreekBuildingsAndNPCs(): void {
-    // 1. Die 6 Acker-Parzellen (5-Stufen-Agrarsystem im Attika-Tal)
+    // 1. Die 6 Acker-Parzellen (3x2-Feld im Attika-Tal)
     const plotCoords = [
-      [215, 475],
-      [245, 475],
-      [275, 475],
-      [215, 505],
-      [245, 505],
-      [275, 505],
+      [760, 870],
+      [800, 870],
+      [840, 870],
+      [760, 910],
+      [800, 910],
+      [840, 910],
     ];
     plotCoords.forEach(([px, py], idx) => {
       const n = this.addNode('plot', px, py, 'farm', 'soil_raw', `🌱 Ackerbeet ${idx + 1}`, '#bef264', 1);
       n.plotId = idx;
-      n.sprite.setDepth(5);
+      n.sprite.setDepth(py);
       this.refreshPlotVisual(n);
     });
 
-    // 2. Die 7 errichtbaren Gebäude (NUR wenn freigeschaltet oder bereits errichtet!)
+    // 2. Die 7 errichtbaren Gebäude
     for (const b of state.buildingsData) {
       const isBuilt = state.hasBuilding(b.id);
       const isUnlocked = b.unlockedInChapter <= state.chapter;
@@ -715,66 +747,62 @@ export class WorldScene extends Phaser.Scene {
 
     // 3. Griechische Dorf-Helfer bei errichteten Bauwerken
     if (state.hasBuilding('olivenpresse')) {
-      const n = this.addNode('npc_chloe', 295, 375, 'player_greek_female', 0, '🫒 Chloe (Olivenbäuerin)', '#a3e635', 1);
+      const n = this.addNode('npc_chloe', 660, 920, 'player_greek_female', 0, '🫒 Chloe (Olivenbäuerin)', '#a3e635', 1);
       (n.sprite as Phaser.GameObjects.Sprite).play('idle-greek-female-down');
     }
     if (state.hasBuilding('hafen_werft')) {
-      const n = this.addNode('npc_glaukos', 685, 385, 'player_greek_male', 0, '⛵ Glaukos (Schiffszimmermann)', '#38bdf8', 1);
+      const n = this.addNode('npc_glaukos', 1260, 720, 'player_greek_male', 0, '⛵ Glaukos (Schiffszimmermann)', '#38bdf8', 1);
       (n.sprite as Phaser.GameObjects.Sprite).play('idle-greek-male-down');
     }
     if (state.hasBuilding('sparta_schmiede')) {
-      const n = this.addNode('npc_brasidas', 140, 125, 'npc_guard', 0, '🛡️ Brasidas (Hoplit)', '#f87171', 1);
+      const n = this.addNode('npc_brasidas', 160, 615, 'npc_guard', 0, '🛡️ Brasidas (Hoplit)', '#f87171', 1);
       (n.sprite as Phaser.GameObjects.Sprite).play('idle-guard');
     }
 
     // 4. Interaktive Spezial-Stationen (Kapitel-Gating!)
     if (state.chapter >= 2) {
-      this.addNode('colony_ship', 715, 365, 'trireme_blue', undefined, '⛵ Kolonistenschiff', '#38bdf8', 0.92);
+      this.addNode('colony_ship', 1360, 720, 'trireme_blue', undefined, '⛵ Kolonistenschiff', '#38bdf8', 0.92);
     }
     if (state.chapter >= 3) {
-      this.addNode('training_dummy', 225, 130, 'training_dummy', undefined, '🛡️ Agoge-Übungsplatz', '#f87171', 0.95);
-    }
-    if (state.chapter >= 4) {
-      this.placeDecor('pnyx_council', 465, 210);
+      this.addNode('training_dummy', 380, 540, 'training_dummy', undefined, '🛡️ Agoge-Übungsplatz', '#f87171', 0.95);
     }
     if (state.chapter >= 5) {
-      this.add.image(665, 118, 'olymp_rune_circle').setScale(0.8).setDepth(6);
-      this.addNode('olymp_portal', 665, 110, 'olymp_orb_pedestal', undefined, '⚡ Wolkentor zum Berg Olymp', '#7dd3fc', 0.85);
+      this.add.image(1340, 168, 'olymp_rune_circle').setScale(0.85).setDepth(166);
+      this.addNode('olymp_portal', 1340, 160, 'olymp_orb_pedestal', undefined, '⚡ Wolkentor zum Berg Olymp', '#7dd3fc', 0.85);
     }
     if (state.chapter >= 6) {
-      this.addNode('thermopylae_gate', 285, 65, 'thermopylae_gate', undefined, '🛡️ Pass der Thermopylen', '#f87171', 0.95);
-      this.addNode('beacon_tower', 335, 68, 'watchtower_stone', undefined, '🔥 Signal-Wachturm', '#fb923c', 0.9);
-      this.addNode('parthenon_goal', 425, 115, 'fire_altar_gold', undefined, '🏛️ Altar der Akropolis', '#fde047', 0.85);
+      this.addNode('thermopylae_gate', 280, 140, 'thermopylae_gate', undefined, '🛡️ Pass der Thermopylen', '#f87171', 0.95);
+      this.addNode('beacon_tower', 360, 140, 'watchtower_stone', undefined, '🔥 Signal-Wachturm', '#fb923c', 0.9);
+      this.addNode('parthenon_goal', 800, 240, 'fire_altar_gold', undefined, '🏛️ Altar der Akropolis', '#fde047', 0.85);
     }
     if (state.chapter >= 7) {
-      this.addNode('trireme_warship', 715, 445, 'trireme_red', undefined, '⚓ Kriegstrireme von Salamis', '#f87171', 0.95);
-      this.addNode('pharos_lighthouse', 635, 495, 'lighthouse_pharos', undefined, '🗼 Pharos-Leuchtturm', '#fde047', 0.95);
+      this.addNode('trireme_warship', 1330, 870, 'trireme_red', undefined, '⚓ Kriegstrireme von Salamis', '#f87171', 0.95);
+      this.addNode('pharos_lighthouse', 1440, 960, 'lighthouse_pharos', undefined, '🗼 Pharos-Leuchtturm', '#fde047', 0.95);
     }
     if (state.chapter >= 8) {
-      this.placeDecor('theater', 295, 118);
-      this.placeDecor('academy_garden', 310, 215);
-      this.addNode('theater_stage', 295, 152, 'brazier_tripod', undefined, '🎭 Bühne des Theaters', '#c084fc', 0.85);
+      this.placeDecor('theater', 880, 350);
+      this.addNode('theater_stage', 880, 400, 'brazier_tripod', undefined, '🎭 Bühne des Theaters', '#c084fc', 0.85);
     }
     if (state.chapter >= 9) {
-      this.placeDecor('marble_archway', 535, 290);
-      this.addNode('gordian_knot', 495, 295, 'chest_ornate', undefined, '🪢 Der Gordische Knoten', '#fde047', 0.9);
+      this.placeDecor('marble_archway', 1060, 380);
+      this.addNode('gordian_knot', 1100, 420, 'chest_ornate', undefined, '🪢 Der Gordische Knoten', '#fde047', 0.9);
     }
     if (state.chapter >= 10) {
-      this.addNode('babylon_legacy', 595, 325, 'statue_nike_gold', undefined, '👑 Alexanders Vermächtnis', '#fde047', 0.85);
+      this.addNode('babylon_legacy', 1150, 660, 'statue_nike_gold', undefined, '👑 Alexanders Vermächtnis', '#fde047', 0.85);
     }
 
-    // 5. Mentor des AKTUELLEN Kapitels (NUR ein Mentor gleichzeitig, Mindestabstand >= 44px!)
+    // 5. Mentor des AKTUELLEN Kapitels
     const mentorDefs: Record<number, { kind: Kind; tex: string; anim: string; x: number; y: number; label: string }> = {
-      1: { kind: 'npc_nikolaos', tex: 'npc_nikolaos', anim: 'idle-nikolaos', x: 395, y: 295, label: '🏛️ Dorfältester Nikolaos' },
-      2: { kind: 'npc_telesikles', tex: 'npc_telesikles', anim: 'idle-telesikles', x: 645, y: 375, label: '⛵ Kapitän Telesikles' },
-      3: { kind: 'npc_kleomenes', tex: 'npc_kleomenes', anim: 'idle-kleomenes', x: 195, y: 145, label: '🛡️ Ephor Kleomenes' },
-      4: { kind: 'npc_perikles', tex: 'npc_perikles', anim: 'idle-perikles', x: 475, y: 240, label: '🦉 Staatsmann Perikles' },
-      5: { kind: 'npc_pythia', tex: 'npc_pythia', anim: 'idle-pythia', x: 565, y: 130, label: '🔮 Priesterin Pythia' },
-      6: { kind: 'npc_leonidas', tex: 'npc_leonidas', anim: 'idle-leonidas', x: 285, y: 115, label: '⚔️ König Leonidas' },
-      7: { kind: 'npc_themistokles', tex: 'npc_themistokles', anim: 'idle-themistokles', x: 650, y: 445, label: '⚓ Stratege Themistokles' },
-      8: { kind: 'npc_sokrates', tex: 'npc_sokrates', anim: 'idle-sokrates', x: 370, y: 175, label: '📜 Philosoph Sokrates' },
-      9: { kind: 'npc_alexander', tex: 'npc_alexander', anim: 'idle-alexander', x: 535, y: 315, label: '👑 Alexander der Große' },
-      10: { kind: 'npc_ptolemaios', tex: 'npc_ptolemaios', anim: 'idle-ptolemaios', x: 520, y: 395, label: '🏛️ Chronist Ptolemaios' },
+      1: { kind: 'npc_nikolaos', tex: 'npc_nikolaos', anim: 'idle-nikolaos', x: 800, y: 520, label: '🏛️ Dorfältester Nikolaos' },
+      2: { kind: 'npc_telesikles', tex: 'npc_telesikles', anim: 'idle-telesikles', x: 1220, y: 700, label: '⛵ Kapitän Telesikles' },
+      3: { kind: 'npc_kleomenes', tex: 'npc_kleomenes', anim: 'idle-kleomenes', x: 260, y: 540, label: '🛡️ Ephor Kleomenes' },
+      4: { kind: 'npc_perikles', tex: 'npc_perikles', anim: 'idle-perikles', x: 800, y: 520, label: '🦉 Staatsmann Perikles' },
+      5: { kind: 'npc_pythia', tex: 'npc_pythia', anim: 'idle-pythia', x: 1160, y: 200, label: '🔮 Priesterin Pythia' },
+      6: { kind: 'npc_leonidas', tex: 'npc_leonidas', anim: 'idle-leonidas', x: 280, y: 180, label: '⚔️ König Leonidas' },
+      7: { kind: 'npc_themistokles', tex: 'npc_themistokles', anim: 'idle-themistokles', x: 1220, y: 820, label: '⚓ Stratege Themistokles' },
+      8: { kind: 'npc_sokrates', tex: 'npc_sokrates', anim: 'idle-sokrates', x: 530, y: 700, label: '📜 Philosoph Sokrates' },
+      9: { kind: 'npc_alexander', tex: 'npc_alexander', anim: 'idle-alexander', x: 1040, y: 540, label: '👑 Alexander der Große' },
+      10: { kind: 'npc_ptolemaios', tex: 'npc_ptolemaios', anim: 'idle-ptolemaios', x: 1080, y: 660, label: '🏛️ Chronist Ptolemaios' },
     };
 
     const curMentor = mentorDefs[state.chapter];
@@ -786,11 +814,11 @@ export class WorldScene extends Phaser.Scene {
 
   private placeGreekRelics(): void {
     const relicCoords: Array<{ kind: Kind; id: string; x: number; y: number; title: string; minChapter: number }> = [
-      { kind: 'relic_amphore', id: 'relic_amphore', x: 185, y: 355, title: '🏺 Preisamphore', minChapter: 1 },
-      { kind: 'relic_agamemnon', id: 'relic_agamemnon', x: 65, y: 140, title: '🎭 Maske von Mykene', minChapter: 3 },
-      { kind: 'relic_eule', id: 'relic_eule', x: 420, y: 405, title: '🦉 Eulen-Tetradrachme', minChapter: 4 },
-      { kind: 'relic_antikythera', id: 'relic_antikythera', x: 695, y: 525, title: '⚙️ Antikythera-Werk', minChapter: 7 },
-      { kind: 'relic_alexander', id: 'relic_alexander', x: 615, y: 275, title: '👑 Alexander-Büste', minChapter: 9 },
+      { kind: 'relic_amphore', id: 'relic_amphore', x: 680, y: 970, title: '🏺 Preisamphore', minChapter: 1 },
+      { kind: 'relic_agamemnon', id: 'relic_agamemnon', x: 160, y: 460, title: '🎭 Maske von Mykene', minChapter: 3 },
+      { kind: 'relic_eule', id: 'relic_eule', x: 740, y: 440, title: '🦉 Eulen-Tetradrachme', minChapter: 4 },
+      { kind: 'relic_antikythera', id: 'relic_antikythera', x: 1380, y: 920, title: '⚙️ Antikythera-Werk', minChapter: 7 },
+      { kind: 'relic_alexander', id: 'relic_alexander', x: 1120, y: 580, title: '👑 Alexander-Büste', minChapter: 9 },
     ];
 
     for (const r of relicCoords) {
@@ -967,6 +995,9 @@ export class WorldScene extends Phaser.Scene {
 
     // Autonome Tier-KI & Fauna über WildlifeManager
     this.wildlife.update(delta, this.player.x, this.player.y, MAP_W * TILE, MAP_H * TILE);
+    if (this.companion) {
+      this.companion.update(this.player, this.nodes, delta);
+    }
 
     if (state.modal || this.sleeping || this.transitioningOlymp) {
       this.player.setVelocity(0, 0);
@@ -1020,7 +1051,7 @@ export class WorldScene extends Phaser.Scene {
     }
 
     this.player.setVelocity(vx, vy);
-    this.player.setDepth(this.player.y + 16);
+    this.player.setDepth(this.player.y);
 
     if (vx !== 0 || vy !== 0) {
       state.distanceMeters += (Math.hypot(vx, vy) * (delta / 1000)) / 12;
@@ -1034,7 +1065,7 @@ export class WorldScene extends Phaser.Scene {
     }
 
     if (this.playerLabel) {
-      this.playerLabel.setPosition(this.player.x, this.player.y - 22);
+      this.playerLabel.setPosition(this.player.x, this.player.y - 30);
     }
 
     // Interaktions-Erkennung
@@ -1092,7 +1123,7 @@ export class WorldScene extends Phaser.Scene {
       if (p.stage === 'watered') p.stage = 'ripe';
     }
     this.nodes.filter((n) => n.kind === 'plot').forEach((n) => this.refreshPlotVisual(n));
-    this.player.setPosition(395, 305);
+    this.player.setPosition(800, 620);
     this.sleeping = false;
     state.emit(
       'toast',
@@ -1820,6 +1851,15 @@ export class WorldScene extends Phaser.Scene {
         this.debugGraphics.strokeRect(b.x, b.y, b.width, b.height);
       }
     }
+
+    // Cyan-blaue Sprite-AABB Begrenzungsrahmen (Überlappungsschutz)
+    this.debugGraphics.lineStyle(1, 0x38bdf8, 0.7);
+    for (const n of this.nodes) {
+      const sb = n.sprite.getBounds();
+      this.debugGraphics.strokeRect(sb.x, sb.y, sb.width, sb.height);
+    }
+    const psb = this.player.getBounds();
+    this.debugGraphics.strokeRect(psb.x, psb.y, psb.width, psb.height);
 
     // Gelbe Interaktionsradien
     this.debugGraphics.lineStyle(1, 0xfacc15, 0.75);

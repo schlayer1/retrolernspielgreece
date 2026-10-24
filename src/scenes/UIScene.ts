@@ -13,6 +13,9 @@ import { GREEK_RELICS } from '../data/relics';
 import { PlayerRole } from '../systems/SaveManager';
 import { sfx, bgm } from '../audio/sound';
 import { TouchControls } from '../ui/TouchControls';
+import { PrintSheetManager } from '../ui/PrintSheet';
+import { DilemmaModal } from '../ui/DilemmaModal';
+import { GREEK_DILEMMAS } from '../data/dilemmas';
 
 const ITEM_ICON_FILES: Record<GreekItemId, string> = {
   oliven: 'oliven.png',
@@ -121,7 +124,10 @@ export class UIScene extends Phaser.Scene {
     | 'relic'
     | 'cert'
     | 'portal'
+    | 'dilemma'
     | 'milestone' = 'none';
+
+  private dilemmaModal = new DilemmaModal();
 
   private selectedLexId: string = Object.keys(LEXICON)[0];
   private selectedBagCategory: 'all' | GreekItemCategory = 'all';
@@ -227,6 +233,8 @@ export class UIScene extends Phaser.Scene {
         this.toggleModal('timeline', () => this.openTimeline());
       } else if (ev.code === 'KeyU') {
         this.toggleModal('cert', () => this.openCertificate());
+      } else if (ev.code === 'KeyR') {
+        this.toggleModal('dilemma', () => this.openDilemma());
       } else if (ev.code === 'KeyM') {
         const muted = bgm.toggleMute();
         this.updateMuteBtn();
@@ -310,6 +318,9 @@ export class UIScene extends Phaser.Scene {
             <button class="retro-btn" id="btn-cert" title="Hefter-Urkunde drucken (U)">
               🎓 Urkunde <span class="key-badge">U</span>
             </button>
+            <button class="retro-btn" id="btn-dilemma" title="Volksversammlung & Rat (R)" style="border-color:#ca8a04;">
+              ⚖️ Rat <span class="key-badge">R</span>
+            </button>
             <button class="retro-btn" id="btn-mute" title="Ton an/aus (M)">
               🔊 <span class="key-badge">M</span>
             </button>
@@ -365,6 +376,7 @@ export class UIScene extends Phaser.Scene {
     document.getElementById('btn-lex')!.onclick = () => this.openLexicon();
     document.getElementById('btn-time')!.onclick = () => this.openTimeline();
     document.getElementById('btn-cert')!.onclick = () => this.openCertificate();
+    document.getElementById('btn-dilemma')!.onclick = () => this.openDilemma();
     document.getElementById('btn-pause')!.onclick = () => this.openPause();
     document.getElementById('btn-mobile-menu')!.onclick = () => this.openPause();
 
@@ -1899,6 +1911,7 @@ export class UIScene extends Phaser.Scene {
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
           <button class="retro-btn" id="pause-startscreen-btn">🏠 Zum Startbildschirm</button>
           <button class="retro-btn" id="pause-epoch-btn" style="background:#5a3818;border-color:#ffd86b;">🗺️ Kapitel & Epochen wechseln (Z)</button>
+          <button class="retro-btn" id="pause-print-btn" style="background:#047857;border-color:#065f46;color:#fff;font-weight:800;">🖨️ Hefterblatt drucken (A4)</button>
           <button class="retro-btn" id="pause-reset-btn" style="background:#7f1d1d;border-color:#fca5a5;">🔄 Spielstand zurücksetzen</button>
         </div>
         <button class="retro-btn" id="pause-close-btn" style="background:#15803d;border-color:#86efac;color:#fff;font-weight:800;padding:7px 16px;">
@@ -1907,6 +1920,7 @@ export class UIScene extends Phaser.Scene {
       </div>
     `;
 
+    document.getElementById('pause-print-btn')!.onclick = () => this.triggerHefterPrint();
     document.getElementById('pause-resume-btn')!.onclick = () => this.closeModal();
     document.getElementById('pause-close-btn')!.onclick = () => this.closeModal();
     document.getElementById('pause-epoch-btn')!.onclick = () => this.openTimeline();
@@ -2030,9 +2044,45 @@ export class UIScene extends Phaser.Scene {
       </div>
     `;
 
-    document.getElementById('cert-print-btn')!.onclick = () => window.print();
+    document.getElementById('cert-print-btn')!.onclick = () => this.triggerHefterPrint();
     document.getElementById('cert-close-btn')!.onclick = () => this.closeModal();
 
     this.openModalCard();
+  }
+
+  public triggerHefterPrint(): void {
+    const relicsData = Object.values(GREEK_RELICS).map((r) => ({
+      title: r.title,
+      note: r.explanation || r.lore || 'Bedeutendes archäologisches Relikt der griechischen Antike.'
+    }));
+    const keyTerms = Object.entries(LEXICON).slice(0, 3).map(([_, v]) => ({
+      term: v.title,
+      definition: v.text.slice(0, 160) + '...'
+    }));
+    PrintSheetManager.triggerPrint({
+      schoolName: 'Staatliche Regelschule Heimbürgeschule Kahla',
+      epochTitle: 'Antikes Griechenland: Die Wiege der Demokratie & Philosophie',
+      playerName: state.playerName,
+      hefterCode: state.exportCode(),
+      rankTitle: `${state.roleSpecialistTitle()} (${state.relicsFound.length}/5 Relikte geborgen)`,
+      relics: relicsData,
+      dilemmaSummary: state.dilemmaSummary || undefined,
+      keyTerms
+    });
+  }
+
+  public openDilemma(): void {
+    const d = GREEK_DILEMMAS[0];
+    if (!d) return;
+    this.activeModal = 'dilemma';
+    this.dilemmaModal.open(d, (opt) => {
+      state.storyFlags[opt.storyFlag] = true;
+      state.dilemmaSummary = `${d.conflictTitle}: ${opt.title} – ${opt.argumentText}`;
+      for (const [k, v] of Object.entries(opt.rewards)) {
+        state.add(k, v);
+      }
+      this.showToast(`⚖️ Beschluss der Volksversammlung ratifiziert: ${opt.title}`);
+      this.closeModal();
+    });
   }
 }

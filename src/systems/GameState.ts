@@ -106,10 +106,12 @@ class GameState extends Phaser.Events.EventEmitter {
   daysSurvived = 1;
   relicsFound: string[] = [];
   relicQuizAnswered: string[] = [];
+  storyFlags: Record<string, boolean> = {};
+  dilemmaSummary = '';
   goatTamed = false;
 
-  playerX = 415;
-  playerY = 310;
+  playerX = 800;
+  playerY = 620;
 
   malePreviewUrl = '';
   femalePreviewUrl = '';
@@ -328,35 +330,35 @@ class GameState extends Phaser.Events.EventEmitter {
 
     if (this.chapter === 1) {
       this.buildings = [];
-      this.playerX = 415;
-      this.playerY = 310;
+      this.playerX = 800;
+      this.playerY = 620;
       this.plots = this.plots.map((p) => ({ ...p, stage: 'raw', wateredAt: 0 }));
       this.unlockSilent(['polis', 'akropolis', 'agora']);
     } else if (this.chapter === 2) {
       this.buildings = ['olivenpresse'];
-      this.playerX = 635;
-      this.playerY = 395;
+      this.playerX = 1200;
+      this.playerY = 720;
       if (this.count('olivenoel') === 0) this.inventory.olivenoel = 1;
       if (this.count('holz') < 2) this.inventory.holz = 2;
       this.unlockSilent(['hellas', 'olivenbaum', 'kolonisation']);
     } else if (this.chapter === 3) {
       this.buildings = ['olivenpresse', 'hafen_werft'];
-      this.playerX = 185;
-      this.playerY = 175;
+      this.playerX = 260;
+      this.playerY = 560;
       if (this.count('kalkstein') < 2) this.inventory.kalkstein = 2;
       if (this.count('holz') < 2) this.inventory.holz = 2;
       this.unlockSilent(['sparta', 'agoge', 'heloten']);
     } else if (this.chapter === 4) {
       this.buildings = ['olivenpresse', 'hafen_werft', 'sparta_schmiede'];
-      this.playerX = 435;
-      this.playerY = 250;
+      this.playerX = 760;
+      this.playerY = 540;
       if (this.count('kalkstein') < 3) this.inventory.kalkstein = 3;
       if (this.count('ton') < 1) this.inventory.ton = 1;
       this.unlockSilent(['athen_demokratie', 'ekklesia', 'ostrakismos']);
     } else if (this.chapter === 5) {
       this.buildings = ['olivenpresse', 'hafen_werft', 'sparta_schmiede', 'pnyx_buehne'];
-      this.playerX = 595;
-      this.playerY = 165;
+      this.playerX = 1140;
+      this.playerY = 220;
       if (this.count('drachme') < 2) this.inventory.drachme = 2;
       if (this.count('amphore') < 1) this.inventory.amphore = 1;
       if (this.count('olivenoel') < 1) this.inventory.olivenoel = 1;
@@ -364,23 +366,23 @@ class GameState extends Phaser.Events.EventEmitter {
       this.unlockSilent(['olymp_goetter', 'orakel_delphi', 'olympische_spiele']);
     } else if (this.chapter === 6) {
       this.buildings = ['olivenpresse', 'hafen_werft', 'sparta_schmiede', 'pnyx_buehne', 'zeus_altar'];
-      this.playerX = 285;
-      this.playerY = 150;
+      this.playerX = 300;
+      this.playerY = 200;
       if (this.count('aspis_schild') === 0) this.inventory.aspis_schild = 1;
       if (this.count('dory_speer') === 0) this.inventory.dory_speer = 1;
       if (this.count('fackel') === 0) this.inventory.fackel = 1;
       this.unlockSilent(['perserkriege_marathon', 'thermopylen', 'hoplit_phalanx']);
     } else if (this.chapter === 7) {
       this.buildings = ['olivenpresse', 'hafen_werft', 'sparta_schmiede', 'pnyx_buehne', 'zeus_altar'];
-      this.playerX = 650;
-      this.playerY = 420;
+      this.playerX = 1200;
+      this.playerY = 820;
       if (this.count('eisenerz') < 2) this.inventory.eisenerz = 2;
       if (this.count('holz') < 2) this.inventory.holz = 2;
       this.unlockSilent(['trireme_salamis']);
     } else if (this.chapter === 8) {
       this.buildings = ['olivenpresse', 'hafen_werft', 'sparta_schmiede', 'pnyx_buehne', 'zeus_altar'];
-      this.playerX = 355;
-      this.playerY = 195;
+      this.playerX = 560;
+      this.playerY = 700;
       if (this.count('marmor') < 2) this.inventory.marmor = 2;
       if (this.count('ton') < 4) this.inventory.ton = 4;
       if (this.count('olivenoel') < 1) this.inventory.olivenoel = 1;
@@ -395,8 +397,8 @@ class GameState extends Phaser.Events.EventEmitter {
         'zeus_altar',
         'akademie_stube',
       ];
-      this.playerX = 535;
-      this.playerY = 330;
+      this.playerX = 1000;
+      this.playerY = 560;
       if (this.count('holz') < 2) this.inventory.holz = 2;
       if (this.count('eisenerz') < 1) this.inventory.eisenerz = 1;
       if (this.count('marmor') < 3) this.inventory.marmor = 3;
@@ -412,8 +414,8 @@ class GameState extends Phaser.Events.EventEmitter {
         'akademie_stube',
         'bibliothek_alexandria',
       ];
-      this.playerX = 550;
-      this.playerY = 365;
+      this.playerX = 1060;
+      this.playerY = 680;
       if (this.count('schriftrolle') < 1) this.inventory.schriftrolle = 1;
       if (this.count('drachme') < 1) this.inventory.drachme = 1;
       this.unlockSilent(['diadochenreiche']);
@@ -714,8 +716,8 @@ class GameState extends Phaser.Events.EventEmitter {
     this.playerGender = data.playerGender || 'female';
     this.playerRole = data.playerRole || 'sailor';
     this.chapter = Math.max(1, Math.min(10, data.chapter || 1));
-    this.playerX = data.x ?? 415;
-    this.playerY = data.y ?? 310;
+    this.playerX = data.x ?? 800;
+    this.playerY = data.y ?? 620;
     this.inventory = data.inventory || {};
     this.lexicon = data.lexicon || [];
     this.food = data.food ?? 90;
