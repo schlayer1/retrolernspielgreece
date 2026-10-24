@@ -262,6 +262,12 @@ export class WorldScene extends Phaser.Scene {
       [1220, 720, 1240, 820],
       // Piräus-Hafenbecken -> Holzsteg zum Kolonistenschiff
       [1220, 722, 1340, 722],
+      // Kriegshafen Salamis -> Steinmole zur Kriegstrireme
+      [1220, 850, 1220, 888],
+      [1220, 888, 1340, 888],
+      // Steinmole -> Pharos-Leuchtturm
+      [1340, 888, 1380, 920],
+      [1380, 920, 1450, 970],
     ];
 
     let minDist = 999999;
@@ -341,6 +347,18 @@ export class WorldScene extends Phaser.Scene {
         // Hölzerner Schiffsanlegesteg (Steg als Laufweg bis direkt zum Kolonistenschiff, Spalten 76..84, Zeilen 44..46)
         const inPierJetty = tx >= 76 && tx <= 84 && ty >= 44 && ty <= 46;
         const inHarborPier = (tx >= 73 && tx <= 80 && ty >= 42 && ty <= 48 && !inSea) || inPierJetty;
+
+        // Antike Steinmole zum Kriegshafen Salamis & Pharos-Leuchtturm (Kapitel 7–10)
+        // 1. Kai-Zulauf von Stratege Themistokles (x: 1200..1248, y: 848..895)
+        const inMoleEntrance = tx >= 75 && tx <= 78 && ty >= 53 && ty <= 55;
+        // 2. West-Ost-Hauptmole entlang der Kriegstrireme (x: 1200..1375, y: 880..927)
+        const inMoleMain = tx >= 75 && tx <= 85 && ty >= 55 && ty <= 57;
+        // 3. Südost-Verbindungsdamm zum Leuchtturm mit Antikythera-Relikt (x: 1344..1423, y: 912..959)
+        const inMoleConnection = tx >= 84 && tx <= 88 && ty >= 57 && ty <= 59;
+        // 4. Majestätische Leuchtturm-Bastion im Meer (x: 1408..1503, y: 928..1007)
+        const inLighthouseBastion = tx >= 88 && tx <= 93 && ty >= 58 && ty <= 62;
+        const inSalamisMole = inMoleEntrance || inMoleMain || inMoleConnection || inLighthouseBastion;
+
         const distAgora = Math.hypot(x - 800, y - 608);
         const inAgora =
           distAgora < 145 + dither * 14 ||
@@ -354,9 +372,11 @@ export class WorldScene extends Phaser.Scene {
         const inSpartaRock = Math.hypot(x - 240, y - 540) < 130 + dither * 14;
         const inThermoRock = Math.hypot(x - 280, y - 160) < 95 + dither * 12;
 
-        if (inSea && !inPierJetty) {
-          // Feiner Wasserschatten an der Südflanke des Stegs (Zeile 47)
-          const isPierShadow = tx >= 76 && tx <= 84 && ty === 47;
+        if (inSea && !inPierJetty && !inSalamisMole) {
+          // Feiner Wasserschatten an der Süd- und Ostflanke der Stege und Hafenmole
+          const isPierShadow = (tx >= 76 && tx <= 84 && ty === 47) ||
+                               (tx >= 75 && tx <= 85 && ty === 58) ||
+                               (tx >= 88 && tx <= 94 && ty === 63);
           const deep = x >= coastLineX + 64 && ty >= AEGEAN_SEA.y + 4;
           let r = deep ? (dither > 0 ? 3 : 2) : dither > 0 ? 14 : 56;
           let g = deep ? (dither > 0 ? 105 : 132) : dither > 0 ? 165 : 189;
@@ -385,6 +405,9 @@ export class WorldScene extends Phaser.Scene {
         if (inHarborPier) {
           bx = 3;
           by = 3; // Holzbohlen & Hafenkai
+        } else if (inSalamisMole) {
+          bx = 6;
+          by = 1; // Antike Quadersteine der Hafenmole
         } else if (inAcropolis || inDelphi) {
           bx = 7;
           by = 1; // Helle Marmorterrasse
@@ -406,7 +429,7 @@ export class WorldScene extends Phaser.Scene {
 
         // Pfad-Abtastung (ersetzt unschöne Vektorbögen)
         const pDist = this.pathDistance(x, y);
-        if (pDist < 12 + dither * 5.5 && !inAcropolis && !inHarborPier) {
+        if (pDist < 12 + dither * 5.5 && !inAcropolis && !inHarborPier && !inSalamisMole) {
           bx = 1;
           by = 0; // Warmer mediterraner Naturpfad
         }
@@ -421,6 +444,16 @@ export class WorldScene extends Phaser.Scene {
             r = Math.round(r * 0.65);
             g = Math.round(g * 0.65);
             b = Math.round(b * 0.65);
+          }
+        } else if (inSalamisMole) {
+          // Kantenquader der antiken Steinmole
+          const isMoleNorthEdge = (ty === 55 && y <= 883 && tx > 78) || (ty === 58 && y <= 931 && tx >= 88);
+          const isMoleSouthEdge = (ty === 57 && y >= 924 && tx <= 85) || (ty === 62 && y >= 1004);
+          const isMoleEastEnd = (tx === 93 && x >= 1500) || (tx === 85 && x >= 1372 && ty <= 56);
+          if (isMoleNorthEdge || isMoleSouthEdge || isMoleEastEnd) {
+            r = Math.round(r * 0.72);
+            g = Math.round(g * 0.72);
+            b = Math.round(b * 0.72);
           }
         }
         for (let dy = 0; dy < 2 && y + dy < H; dy++) {
@@ -442,12 +475,13 @@ export class WorldScene extends Phaser.Scene {
   }
 
   private setupWaterAndBoundaries(): void {
-    // Animierte Wellenschimmer auf dem Meer (Aussparung für den begehbaren Holzsteg)
+    // Animierte Wellenschimmer auf dem Meer (Aussparung für Holzsteg & Steinmole)
     for (let wy = AEGEAN_SEA.y + 4; wy < MAP_H - 2; wy += 3) {
       for (let wx = AEGEAN_SEA.x + 4; wx < MAP_W - 2; wx += 4) {
         const sx = wx * TILE + 8;
         const sy = wy * TILE + 8;
-        if (sx >= 1210 && sx <= 1365 && sy >= 700 && sy <= 755) continue;
+        if ((sx >= 1210 && sx <= 1365 && sy >= 700 && sy <= 755) ||
+            (sx >= 1184 && sx <= 1505 && sy >= 848 && sy <= 1010)) continue;
         const shimmer = this.add
           .rectangle(sx, sy, 12, 2, 0xbae6fd, 0.55)
           .setDepth(1);
@@ -455,21 +489,40 @@ export class WorldScene extends Phaser.Scene {
       }
     }
 
-    // Unsichtbare Barrieren für tiefes Wasser (umschließen das Hafenbecken & den Steg begehbar)
-    // 1. Offenes Meer nördlich des Hafenkais
+    // Unsichtbare Barrieren für tiefes Wasser (umschließen beide Schiffsanleger & Stege begehbar)
+    // 1. Offenes Meer nördlich des oberen Schiffsstegs
     const seaNorth = this.add.rectangle(1420, 545, 360, 310, 0x000000, 0);
     this.physics.add.existing(seaNorth, true);
     this.obstacles.add(seaNorth);
 
-    // 2. Offenes Meer südlich des Stegs (Hafenbucht & tiefes Wasser)
-    const seaSouth = this.add.rectangle(1420, 920, 360, 330, 0x000000, 0);
-    this.physics.add.existing(seaSouth, true);
-    this.obstacles.add(seaSouth);
+    // 2. Wasserbecken zwischen Holzsteg (Kapitel 2) und Steinmole (Kapitel 7)
+    // von x=1220 bis x=1600, y=755 bis y=840 (zentriert bei x=1410, y=797, w=380, h=84)
+    const seaMid = this.add.rectangle(1410, 797, 380, 84, 0x000000, 0);
+    this.physics.add.existing(seaMid, true);
+    this.obstacles.add(seaMid);
 
-    // 3. Tiefwasser östlich des Schiffsanlegers (hinter dem Kolonistenschiff)
+    // 3. Tiefwasser östlich des oberen Schiffsanlegers (hinter dem Kolonistenschiff)
     const pierEnd = this.add.rectangle(1485, 727, 230, 54, 0x000000, 0);
     this.physics.add.existing(pierEnd, true);
     this.obstacles.add(pierEnd);
+
+    // 4. Tiefwasser östlich der Leuchtturm-Bastion
+    // von x=1510 bis x=1600, y=860 bis y=1020 (zentriert bei x=1555, y=940, w=90, h=160)
+    const seaEastBastion = this.add.rectangle(1555, 940, 90, 160, 0x000000, 0);
+    this.physics.add.existing(seaEastBastion, true);
+    this.obstacles.add(seaEastBastion);
+
+    // 5. Offenes Meer südlich der Steinmole & Leuchtturm-Bastion
+    // von x=1200 bis x=1600, y=1015 bis y=1280 (zentriert bei x=1400, y=1147, w=400, h=265)
+    const seaSouth = this.add.rectangle(1400, 1147, 400, 265, 0x000000, 0);
+    this.physics.add.existing(seaSouth, true);
+    this.obstacles.add(seaSouth);
+
+    // 6. Meeresbucht südwestlich der Steinmole (zwischen Küste und Verbindungsdamm)
+    // von x=1180 bis x=1340, y=935 bis y=1010 (zentriert bei x=1260, y=972, w=160, h=75)
+    const seaBaySouthWest = this.add.rectangle(1260, 972, 160, 75, 0x000000, 0);
+    this.physics.add.existing(seaBaySouthWest, true);
+    this.obstacles.add(seaBaySouthWest);
   }
 
   /**
@@ -805,8 +858,8 @@ export class WorldScene extends Phaser.Scene {
       this.addNode('parthenon_goal', 800, 240, 'fire_altar_gold', undefined, '🏛️ Altar der Akropolis', '#fde047', 0.85);
     }
     if (state.chapter >= 7) {
-      this.addNode('trireme_warship', 1320, 870, 'trireme_red', undefined, '⚓ Kriegstrireme von Salamis', '#f87171', 0.95);
-      this.addNode('pharos_lighthouse', 1450, 970, 'lighthouse_pharos', undefined, '🗼 Pharos-Leuchtturm', '#fde047', 0.95);
+      this.addNode('trireme_warship', 1320, 855, 'trireme_red', undefined, '⚓ Kriegstrireme von Salamis (E)', '#f87171', 0.95);
+      this.addNode('pharos_lighthouse', 1450, 970, 'lighthouse_pharos', undefined, '🗼 Pharos-Leuchtturm (E)', '#fde047', 0.95);
     }
     if (state.chapter >= 8) {
       this.placeDecor('theater', 930, 340);
