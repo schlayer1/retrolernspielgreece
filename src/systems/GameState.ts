@@ -323,12 +323,9 @@ class GameState extends Phaser.Events.EventEmitter {
     this.chapter = Math.max(1, Math.min(10, ch));
     this.quest = 0;
 
-    // Ensure basic farming tools exist
-    if (this.count('hacke') === 0) this.inventory.hacke = 1;
-    if (this.count('sichel') === 0) this.inventory.sichel = 1;
-    if (this.count('samen') === 0) this.inventory.samen = 3;
-
     if (this.chapter === 1) {
+      this.inventory = {};
+      this.counts = {};
       this.buildings = [];
       this.playerX = 800;
       this.playerY = 620;
@@ -582,7 +579,9 @@ class GameState extends Phaser.Events.EventEmitter {
     for (const f of foods) {
       if (this.count(f.id) > 0) {
         this.inventory[f.id]--;
+        if (this.inventory[f.id] <= 0) delete this.inventory[f.id];
         this.food = Math.min(100, this.food + f.val);
+        this.safety = Math.min(100, this.safety + 8);
         sfx.eat();
         this.emit('inventory');
         this.persist();
@@ -629,6 +628,8 @@ class GameState extends Phaser.Events.EventEmitter {
   resetNewGame(chapter = 1): void {
     this.saves.clear();
     this.counts = {};
+    this.inventory = {};
+    this.buildings = [];
     this.lexicon = [];
     this.relicsFound = [];
     this.relicQuizAnswered = [];
@@ -719,6 +720,11 @@ class GameState extends Phaser.Events.EventEmitter {
     this.playerX = data.x ?? 800;
     this.playerY = data.y ?? 620;
     this.inventory = data.inventory || {};
+    if (this.chapter === 1 && (data.quest ?? 0) === 0) {
+      this.inventory = {};
+      this.counts = {};
+      this.buildings = [];
+    }
     this.lexicon = data.lexicon || [];
     this.food = data.food ?? 90;
     this.safety = data.safety ?? 90;

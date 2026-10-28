@@ -223,6 +223,12 @@ export class UIScene extends Phaser.Scene {
         this.toggleModal('craft', () => this.openCraft());
       } else if (ev.code === 'KeyB' || ev.code === 'KeyI') {
         this.toggleModal('bag', () => this.openBag());
+      } else if (ev.code === 'KeyF') {
+        if (this.activeModal !== 'none' && this.activeModal !== 'bag') return;
+        this.eatFood();
+        if (this.activeModal === 'bag') {
+          this.openBag();
+        }
       } else if (ev.code === 'KeyV') {
         this.toggleModal('build', () => this.openBuild());
       } else if (ev.code === 'KeyH') {
@@ -278,7 +284,7 @@ export class UIScene extends Phaser.Scene {
                 </div>
                 <span id="hud-health-val" style="min-width:34px;text-align:right">100%</span>
               </div>
-              <div class="hud-bar-row">
+              <div class="hud-bar-row" title="Sättigung (Taste F zum Essen)">
                 <span>🫒 Sättigung</span>
                 <div class="hud-bar-track">
                   <div class="hud-bar-fill" id="hud-hunger-fill" style="background:#f59e0b;width:100%"></div>
@@ -498,14 +504,47 @@ export class UIScene extends Phaser.Scene {
     }
   }
 
+  private eatFood(): void {
+    if (Math.round(state.food) >= 100) {
+      this.showToast('🍽️ Du bist bereits vollkommen gesättigt (100%)!');
+      return;
+    }
+    const priorityFoods: GreekItemId[] = [
+      'blutsuppe',
+      'gebratener_fisch',
+      'maza_brot',
+      'ziegenkaese',
+      'olivenoel',
+      'fisch',
+      'oliven',
+    ];
+    let targetFood = priorityFoods.find((id) => state.count(id) > 0);
+    if (!targetFood) {
+      const anyFood = (Object.keys(ITEMS) as GreekItemId[]).find(
+        (id) => ITEMS[id]?.category === 'food' && state.count(id) > 0
+      );
+      if (anyFood) targetFood = anyFood;
+    }
+
+    if (targetFood) {
+      this.eatItem(targetFood);
+    } else {
+      this.showToast('🍽️ Kein Proviant im Beutel! Pflücke Oliven oder angle frischen Fisch.');
+    }
+  }
+
   private eatItem(id: GreekItemId): void {
     const def = ITEMS[id];
     if (!def || def.category !== 'food' || state.count(id) <= 0) return;
     state.inventory[id] = Math.max(0, state.count(id) - 1);
+    if (state.inventory[id] <= 0) {
+      delete state.inventory[id];
+    }
     const val = def.foodValue ?? 25;
     state.food = Math.min(100, state.food + val);
     state.safety = Math.min(100, state.safety + 8);
     sfx.eat();
+    state.emit('inventory');
     state.persist();
     this.refreshHUD();
     this.showToast(`🫒 Verzehrt: 1× ${def.name} (+${val}% Sättigung)`);
@@ -912,7 +951,7 @@ export class UIScene extends Phaser.Scene {
 
         <div class="modal-footer" style="justify-content:space-between;">
           <div style="font-size:12px;color:#5a3818;font-weight:700;">
-            🎮 Steuerung: <strong>WASD / Pfeiltasten</strong> (oder Touch-Joystick) · <strong>[E]</strong> Interagieren · <strong>[I]</strong> Rucksack
+            🎮 Steuerung: <strong>WASD / Pfeiltasten</strong> (oder Touch-Joystick) · <strong>[E]</strong> Interagieren · <strong>[F]</strong> Essen · <strong>[I]</strong> Rucksack · <strong>[C]</strong> Handwerk
           </div>
           <button class="retro-btn" id="start-begin-btn" style="background:#15803d;border-color:#86efac;color:#fff;font-size:14.5px;padding:8px 18px;">
             ⛵ Abenteuer in Hellas starten!
