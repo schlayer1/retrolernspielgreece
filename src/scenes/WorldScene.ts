@@ -260,6 +260,8 @@ export class WorldScene extends Phaser.Scene {
       [740, 200, 360, 160],
       // Hafen Piräus -> Kriegshafen Salamis
       [1220, 720, 1240, 820],
+      // Hafen Piräus -> Uferpfad zur Töpferbucht am Meeresstrand
+      [1200, 700, 1205, 555],
       // Piräus-Hafenbecken -> Holzsteg zum Kolonistenschiff
       [1220, 722, 1340, 722],
       // Kriegshafen Salamis -> Steinmole zur Kriegstrireme
@@ -417,9 +419,9 @@ export class WorldScene extends Phaser.Scene {
         } else if (inSpartaRock || inThermoRock) {
           bx = 3;
           by = 1; // Rauer Schiefer & Gebirgsfels
-        } else if (x < coastLineX && x >= coastLineX - (38 + dither * 12) && ty >= AEGEAN_SEA.y - 2) {
+        } else if (x < coastLineX && x >= coastLineX - (54 + dither * 12) && ty >= AEGEAN_SEA.y - 2) {
           bx = 2;
-          by = 1; // Feiner goldener Sandstrand
+          by = 1; // Feiner goldener Sandstrand am Meeresufer
         } else {
           // Organische Wiesen & Olivenhaine
           const wave = Math.sin(x * 0.016 + y * 0.014) * 0.5 + Math.cos(x * 0.012 - y * 0.018) * 0.5;
@@ -490,8 +492,8 @@ export class WorldScene extends Phaser.Scene {
     }
 
     // Unsichtbare Barrieren für tiefes Wasser (umschließen beide Schiffsanleger & Stege begehbar)
-    // 1. Offenes Meer nördlich des oberen Schiffsstegs
-    const seaNorth = this.add.rectangle(1420, 545, 360, 310, 0x000000, 0);
+    // 1. Offenes Meer nördlich des oberen Schiffsstegs (lässt Uferstrand & Werft komplett frei begehbar)
+    const seaNorth = this.add.rectangle(1445, 540, 310, 300, 0x000000, 0);
     this.physics.add.existing(seaNorth, true);
     this.obstacles.add(seaNorth);
 
@@ -502,7 +504,7 @@ export class WorldScene extends Phaser.Scene {
     this.obstacles.add(seaMid);
 
     // 3. Tiefwasser östlich des oberen Schiffsanlegers (hinter dem Kolonistenschiff)
-    const pierEnd = this.add.rectangle(1485, 727, 230, 54, 0x000000, 0);
+    const pierEnd = this.add.rectangle(1500, 727, 200, 54, 0x000000, 0);
     this.physics.add.existing(pierEnd, true);
     this.obstacles.add(pierEnd);
 
@@ -763,9 +765,9 @@ export class WorldScene extends Phaser.Scene {
       n.sprite.setTint(0xf8fafc);
     }
 
-    // Attischer Töpferton (Eisenreiche rote Ton-Lagerstätten direkt am Meeresufer/Strand)
-    this.addNode('res_ton', 1160, 560, 'clay_deposit', undefined, '🏺 Attischer Töpferton (E)', '#fb923c', 1.0);
-    this.addNode('res_ton', 1150, 610, 'clay_deposit', undefined, '🏺 Attischer Töpferton (E)', '#fb923c', 1.0);
+    // Attischer Töpferton (Eisenreiche rote Ton-Lagerstätten direkt am sandigen Meeresufer/Strand)
+    this.addNode('res_ton', 1185, 520, 'clay_deposit', undefined, '🧱 Roter Töpferton am Ufer (E)', '#fb923c', 1.05);
+    this.addNode('res_ton', 1195, 565, 'clay_deposit', undefined, '🧱 Roter Töpferton am Ufer (E)', '#fb923c', 1.05);
 
     // Schaf- & Ziegenwolle an der Weide
     this.addNode('res_wolle', 340, 860, 'stone_well', undefined, '🐑 Hirten-Wollkorb', '#f8fafc', 0.78);
@@ -833,7 +835,7 @@ export class WorldScene extends Phaser.Scene {
       (n.sprite as Phaser.GameObjects.Sprite).play('idle-greek-female-down');
     }
     if (state.hasBuilding('hafen_werft')) {
-      const n = this.addNode('npc_glaukos', 1250, 722, 'player_greek_male', 0, '⛵ Glaukos (Schiffszimmermann)', '#38bdf8', 1);
+      const n = this.addNode('npc_glaukos', 1200, 695, 'player_greek_male', 0, '⛵ Glaukos (Schiffszimmermann)', '#38bdf8', 1);
       (n.sprite as Phaser.GameObjects.Sprite).play('idle-greek-male-down');
     }
     if (state.hasBuilding('sparta_schmiede')) {
@@ -843,7 +845,7 @@ export class WorldScene extends Phaser.Scene {
 
     // 4. Interaktive Spezial-Stationen (Kapitel-Gating!)
     if (state.chapter >= 2) {
-      this.addNode('colony_ship', 1360, 726, 'trireme_blue', undefined, '⛵ Kolonistenschiff', '#38bdf8', 0.92);
+      this.addNode('colony_ship', 1352, 728, 'trireme_blue', undefined, '⛵ Kolonistenschiff (E)', '#38bdf8', 0.92);
     }
     if (state.chapter >= 3) {
       this.addNode('training_dummy', 380, 540, 'training_dummy', undefined, '🛡️ Agoge-Übungsplatz', '#f87171', 0.95);
@@ -1166,6 +1168,7 @@ export class WorldScene extends Phaser.Scene {
     const distNode = nearest
       ? Phaser.Math.Distance.Between(this.player.x, this.player.y, nearest.sprite.x, nearest.sprite.y)
       : Infinity;
+    const nearestReach = nearest ? this.getNodeReach(nearest) : REACH;
 
     const dogDist = this.companion ? this.companion.getDistanceTo(this.player.x, this.player.y) : Infinity;
     const nearestAnimal = this.wildlife ? this.wildlife.getNearestAnimal(this.player.x, this.player.y, 48) : null;
@@ -1174,7 +1177,7 @@ export class WorldScene extends Phaser.Scene {
       : Infinity;
 
     // Priorität für visuelle Einblendung (state.hint):
-    if (nearest && distNode <= REACH) {
+    if (nearest && distNode <= nearestReach) {
       state.hint = nearest.label?.el.textContent || 'Drücke E zum Interagieren';
     } else if (dogDist < 44 && dogDist <= animalDist) {
       state.hint = '🐕 Argos (E: Streicheln)';
@@ -1199,7 +1202,7 @@ export class WorldScene extends Phaser.Scene {
       Boolean(state.touch?.consumeAction());
 
     if (justActed && Date.now() - state.lastModalClose > 250) {
-      if (nearest && distNode <= REACH) {
+      if (nearest && distNode <= nearestReach) {
         this.interact(nearest);
       } else if (dogDist < 44 && dogDist <= animalDist) {
         this.companion.pet();
@@ -1278,14 +1281,20 @@ export class WorldScene extends Phaser.Scene {
     this.persist();
   }
 
+  private getNodeReach(n: Node): number {
+    if (n.kind === 'colony_ship' || n.kind === 'trireme_warship') return 88;
+    return REACH;
+  }
+
   private findNearestNode(): Node | null {
     let best: Node | null = null;
-    let bestDist = REACH;
+    let bestScore = Infinity;
     for (const n of this.nodes) {
       if (n.readyAt > Date.now()) continue;
+      const reach = this.getNodeReach(n);
       const d = Phaser.Math.Distance.Between(this.player.x, this.player.y, n.sprite.x, n.sprite.y);
-      if (d < bestDist) {
-        bestDist = d;
+      if (d <= reach && d < bestScore) {
+        bestScore = d;
         best = n;
       }
     }
@@ -1382,7 +1391,7 @@ export class WorldScene extends Phaser.Scene {
       n.sprite.setAlpha(0.45);
       state.add('ton', 2);
       state.bump('clay_dug', 2);
-      state.emit('toast', '🏺 +2 Attischen Töpferton gestochen!');
+      state.emit('toast', '🧱 +2 Attischen Töpferton am Meeresufer gestochen!');
       return;
     }
     if (n.kind === 'res_wolle') {
@@ -1837,6 +1846,20 @@ export class WorldScene extends Phaser.Scene {
     const b = n.buildingDef;
     if (!b) return;
     if (state.hasBuilding(b.id)) {
+      if (b.id === 'hafen_werft' && state.chapter === 2 && state.count('amphore') > 0 && state.count('fackel') > 0 && !state.counts['colony_ship_equipped']) {
+        state.bump('colony_ship_equipped', 1);
+        state.unlockLexicon('apoikie');
+        sfx.fanfare();
+        state.openDialog({
+          speaker: 'Kolonistenschiff im Hafen von Piräus',
+          nodes: [
+            {
+              text: '⛵ <strong>Das Schiff ist bereit für die Große Kolonisation!</strong>\n\nDu hast bemalte Amphoren voller Olivenöl verstaut und die heilige Fackel aus dem Prytaneion der Mutterstadt (Metropolis) an Bord gebracht. Die Segel blähen sich Richtung Sizilien und Massalia!',
+            },
+          ],
+        });
+        return;
+      }
       if (b.id === 'pnyx_buehne') {
         if (state.count('ostrakon') > 0 || state.counts['ekklesia_voted']) {
           state.bump('ekklesia_voted', 1);
@@ -1952,13 +1975,14 @@ export class WorldScene extends Phaser.Scene {
       this.playerLabel.el.style.top = `${sy}px`;
     }
 
-    // 2. Den SINGLE nächsten Interaktions-Knoten ermitteln (innerhalb 44px)
+    // 2. Den SINGLE nächsten Interaktions-Knoten ermitteln (innerhalb 44px bzw. Schiffs-Reach)
     let nearestNode: Node | null = null;
-    let minDist = LABEL_PROXIMITY_PX;
+    let minDist = Infinity;
     for (const n of this.nodes) {
       if (!n.label) continue;
+      const maxDist = Math.max(LABEL_PROXIMITY_PX, this.getNodeReach(n));
       const d = Phaser.Math.Distance.Between(this.player.x, this.player.y, n.sprite.x, n.sprite.y);
-      if (d < minDist) {
+      if (d < maxDist && d < minDist) {
         minDist = d;
         nearestNode = n;
       }

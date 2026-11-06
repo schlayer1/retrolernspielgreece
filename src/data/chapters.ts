@@ -408,7 +408,7 @@ export const CHAPTERS: Record<number, ChapterDef> = {
       'Wolle findest du bei den Ziegen und Weiden im Südwesten.',
       'Öffne das Handwerk (Taste C) und webe Segeltuch aus 2× Wolle.',
       'Tritt an den Bauplatz der Schiffswerft am Hafen (E) – du brauchst Holz und Segeltuch.',
-      'Roter Ton liegt nahe der Zisterne. Forme daraus im Handwerk (C) eine bemalte Amphore.',
+      'Roter Töpferton liegt direkt am sandigen Meeresufer nördlich des Hafens. Forme daraus im Handwerk (C) eine bemalte Amphore.',
       'Kombiniere im Handwerk (C) 1× Holz und 1× Olivenöl zu einer Heiligen Fackel.',
       'Gehe zum vor Anker liegenden Schiff am Hafen-Steg und drücke E.',
       'Sprich mit Telesikles über die Ursachen und Folgen der Großen Kolonisation.',
