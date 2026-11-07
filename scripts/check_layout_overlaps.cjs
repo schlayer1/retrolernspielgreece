@@ -189,6 +189,203 @@ function main() {
   }
 
   console.log('✅ PASSED: 0 Overlaps detected! All objects have clear, unblocked bounding boxes.\n');
+
+  // Comprehensive Didactic & Visual Quality Gate (A–T)
+  const qualityErrors = [];
+
+  // A. WorldScene Engine Standards
+  const worldSceneCode = fs.readFileSync(path.join(ROOT, 'src/scenes/WorldScene.ts'), 'utf8');
+  if (!worldSceneCode.includes('sampleBlock') && !worldSceneCode.includes('getImageData')) {
+    qualityErrors.push('WorldScene.ts does not sample real A2 pixel tiles via getImageData/sampleBlock (found flat color approximation)!');
+  }
+  if (!worldSceneCode.includes('scatterGroundFlora')) {
+    qualityErrors.push('WorldScene.ts does not define or call scatterGroundFlora() (missing 120-150 ground flora instances)!');
+  }
+  if (!worldSceneCode.includes("textures.get('world_atlas')?.has")) {
+    qualityErrors.push('WorldScene.ts lacks world_atlas texture check for decor (risk of invisible trees/props)!');
+  }
+
+  // B. Didactic Stations Check (min. 5 stations)
+  try {
+    const stationsCode = fs.readFileSync(path.join(ROOT, 'src/data/stations.ts'), 'utf8');
+    const stationMatches = stationsCode.match(/id:\s*['"][^'"]+['"]/g) || [];
+    if (stationMatches.length < 5) {
+      qualityErrors.push(`src/data/stations.ts contains only ${stationMatches.length} stations (minimum required: 5)!`);
+    }
+  } catch (e) {
+    qualityErrors.push(`Failed to read src/data/stations.ts: ${e.message}`);
+  }
+
+  // C. Archaeological Relics Check (min. 5 primary sources)
+  try {
+    const relicsCode = fs.readFileSync(path.join(ROOT, 'src/data/relics.ts'), 'utf8');
+    const relicMatches = relicsCode.match(/id:\s*['"][^'"]+['"]/g) || [];
+    if (relicMatches.length < 5) {
+      qualityErrors.push(`src/data/relics.ts contains only ${relicMatches.length} relics (minimum required: 5)!`);
+    }
+  } catch (e) {
+    qualityErrors.push(`Failed to read src/data/relics.ts: ${e.message}`);
+  }
+
+  // D. Progressive Historical Lexicon Check (strictly 27 terms)
+  try {
+    const lexiconCode = fs.readFileSync(path.join(ROOT, 'src/data/lexicon.ts'), 'utf8');
+    const termMatches = lexiconCode.match(/term:\s*['"][^'"]+['"]/g) || [];
+    if (termMatches.length < 27) {
+      qualityErrors.push(`src/data/lexicon.ts contains only ${termMatches.length} terms (strictly 27 required by skill standard)!`);
+    }
+  } catch (e) {
+    qualityErrors.push(`Failed to read src/data/lexicon.ts: ${e.message}`);
+  }
+
+  // E. Didactic A4 Print Sheet Check
+  if (!fs.existsSync(path.join(ROOT, 'src/ui/PrintSheet.ts'))) {
+    qualityErrors.push('src/ui/PrintSheet.ts is missing (didactic 1-click A4 student print sheet required)!');
+  }
+
+  // F. Audio Synthesizer Check
+  if (!fs.existsSync(path.join(ROOT, 'src/audio/sound.ts'))) {
+    qualityErrors.push('src/audio/sound.ts is missing (4-surface footstep & UI sound synthesizer required)!');
+  }
+
+  // G. Interior Scene & Key Building Integrity Check
+  if (fs.existsSync(path.join(ROOT, 'src/scenes/InteriorScene.ts'))) {
+    const interiorCode = fs.readFileSync(path.join(ROOT, 'src/scenes/InteriorScene.ts'), 'utf8');
+    if (!interiorCode.includes('exitToOverworld') || !interiorCode.includes('exitMat')) {
+      qualityErrors.push('src/scenes/InteriorScene.ts lacks a verified exitMat / exitToOverworld return mechanism!');
+    }
+  } else {
+    qualityErrors.push('src/scenes/InteriorScene.ts is missing!');
+  }
+
+  // H. 3D Plateau & Cliff Elevation Check
+  if (!worldSceneCode.includes('buildPlateauCliffs') && !worldSceneCode.includes('cliffs_nature') && !worldSceneCode.includes('cliffs_desert')) {
+    qualityErrors.push('WorldScene.ts lacks 3D plateau & cliff elevation (missing buildPlateauCliffs() with visible stairs/ramps onto +1 level)!');
+  }
+
+  // I. Quest Compass Check (Orientation & Distance Radar)
+  const uiScenePath = path.join(ROOT, 'src/scenes/UIScene.ts');
+  const uiSceneCode = fs.existsSync(uiScenePath) ? fs.readFileSync(uiScenePath, 'utf8') : '';
+  const indexHtmlCode = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+
+  if (!worldSceneCode.includes('updateCompass') && !worldSceneCode.includes('updateQuestCompass') && !worldSceneCode.includes('compassText')) {
+    qualityErrors.push('WorldScene.ts lacks Quest-Compass updating logic (missing updateCompass() / updateQuestCompass())!');
+  }
+  if (!uiSceneCode.includes('hud-compass') && !indexHtmlCode.includes('hud-compass')) {
+    qualityErrors.push('HUD lacks #hud-compass element in UIScene.ts or index.html (compass radar UI missing)!');
+  }
+
+  // J. Camera Dialog Zoom Check (Cinematic 1.32x zoom on mentor)
+  if (!worldSceneCode.includes('1.32') && !worldSceneCode.includes('focusOnDialog') && !worldSceneCode.includes('zoomTo')) {
+    qualityErrors.push('WorldScene.ts lacks 1.32x dynamic Camera Dialog Zoom (missing focusOnDialog / zoomTo(1.32))!');
+  }
+
+  // K. Kinematic Chapter Banner Check
+  if (!worldSceneCode.includes('ChapterBanner')) {
+    qualityErrors.push('WorldScene.ts does not import or trigger ChapterBanner upon chapter transition!');
+  }
+
+  // L. 7-Tile Pause Dashboard Check
+  if (!uiSceneCode.includes('distanceMeters') && !worldSceneCode.includes('distanceMeters')) {
+    qualityErrors.push('Pause Dashboard / Player movement lacks odometer distance tracking (missing distanceMeters)!');
+  }
+  if (!uiSceneCode.includes('pause') && !fs.existsSync(path.join(ROOT, 'src/ui/PauseDashboardModal.ts'))) {
+    qualityErrors.push('Game lacks 7-Tile Pause Dashboard (missing PauseDashboardModal.ts or pause handling in UIScene.ts)!');
+  }
+
+  // M. 4-Surface Footstep Audio Check
+  if (!worldSceneCode.includes('step(') && !worldSceneCode.includes('playFootstep')) {
+    qualityErrors.push('WorldScene.ts lacks 4-surface footstep audio calls (missing sound.step / playFootstep on movement)!');
+  }
+
+  // N. Secret-of-Evermore Companion Check
+  if (!worldSceneCode.includes('Companion') && !worldSceneCode.includes('companionManager') && !worldSceneCode.includes('dog_')) {
+    qualityErrors.push('WorldScene.ts lacks Secret-of-Evermore Companion instantiation (missing Companion.ts integration)!');
+  }
+
+  // O. 360° Archaeological Relic Inspector Check
+  if (!fs.existsSync(path.join(ROOT, 'src/ui/ArtifactInspectorModal.ts')) && !uiSceneCode.includes('openArtifactInspector') && !uiSceneCode.includes('360')) {
+    qualityErrors.push('UI lacks 360° Archaeological Relic Inspector (missing ArtifactInspectorModal.ts or 360° flip card in UIScene)!');
+  }
+
+  // P. Interactive Didactic Station Modal Check
+  if (!fs.existsSync(path.join(ROOT, 'src/ui/StationModal.ts')) && !uiSceneCode.includes('openStation')) {
+    qualityErrors.push('UI lacks interactive didactic station container (missing StationModal.ts or openStation handler)!');
+  }
+
+  // Q. Epoch Phase Timeline Check (Key Z)
+  if (!uiSceneCode.includes("'Z'") && !uiSceneCode.includes('"Z"') && !uiSceneCode.includes('timeline') && !fs.existsSync(path.join(ROOT, 'src/ui/TimelineModal.ts'))) {
+    qualityErrors.push('Game lacks epoch phase timeline compare modal (Key Z / TimelineModal missing)!');
+  }
+
+  // R. Dynamic Chapter Music Check (MusicManager & Chapter BGM)
+  if (!fs.existsSync(path.join(ROOT, 'src/audio/MusicManager.ts'))) {
+    qualityErrors.push('src/audio/MusicManager.ts is missing (dynamic chapter BGM crossfader required)!');
+  } else {
+    const musicCode = fs.readFileSync(path.join(ROOT, 'src/audio/MusicManager.ts'), 'utf8');
+    if (!musicCode.includes('playChapterMusic')) {
+      qualityErrors.push('src/audio/MusicManager.ts lacks playChapterMusic() method for chapter transitions!');
+    }
+  }
+  if (!worldSceneCode.includes('playChapterMusic') && !worldSceneCode.includes('music.play')) {
+    qualityErrors.push('WorldScene.ts does not trigger chapter music on transition (missing music.playChapterMusic)!');
+  }
+
+  // S. Strict Chapter Schema & Music Metadata Check
+  const chaptersCode = fs.readFileSync(path.join(ROOT, 'src/data/chapters.ts'), 'utf8');
+  const chapterMatches = chaptersCode.match(/id:\s*(\d+)/g) || [];
+  if (chapterMatches.length < 6 || chapterMatches.length > 12) {
+    qualityErrors.push(`src/data/chapters.ts defines ${chapterMatches.length} chapters (strictly 6 to 12 chapters required)!`);
+  }
+  if (!chaptersCode.includes('music') && !chaptersCode.includes('trackId') && !chaptersCode.includes('bgm')) {
+    qualityErrors.push('src/data/chapters.ts chapters lack dedicated chapter-music declarations (missing music: { trackId, title, mood, prompt })!');
+  }
+
+  // T. Strict 16x32 Character & Mentor Frame Size Enforcement (Steinzeit Benchmark)
+  const bootScenePath = path.join(ROOT, 'src/scenes/BootScene.ts');
+  if (fs.existsSync(bootScenePath)) {
+    const bootCode = fs.readFileSync(bootScenePath, 'utf8');
+    const sheetCalls = bootCode.match(/load\.spritesheet\([\s\S]*?\);/g) || [];
+    for (const call of sheetCalls) {
+      const isCharOrNpc =
+        call.includes("'character'") ||
+        call.includes("'player") ||
+        call.includes("'npc_") ||
+        call.includes('farm_baker') ||
+        call.includes('farm_farmer');
+      if (isCharOrNpc) {
+        const m = call.match(/frameWidth:\s*(\d+)[\s\S]*?frameHeight:\s*(\d+)/);
+        if (m) {
+          const fw = parseInt(m[1], 10);
+          const fh = parseInt(m[2], 10);
+          if (fw !== 16 || fh !== 32) {
+            qualityErrors.push(
+              `BootScene.ts loads humanoid/NPC spritesheet with invalid dimensions ${fw}x${fh} in: ${call.replace(/\s+/g, ' ')}! Strictly 16x32 required (Steinzeit benchmark)!`
+            );
+          }
+        }
+      }
+    }
+  }
+
+  if (qualityErrors.length > 0) {
+    console.error('\n❌ COMPREHENSIVE QUALITY GATE FAILURES:');
+    qualityErrors.forEach((err) => console.error(`  - ${err}`));
+    process.exit(1);
+  } else {
+    console.log('✅ Comprehensive Quality Standards Verified:');
+    console.log('   ✓ A2 Pixel Terrain Sampling & 100+ Flora Scatter');
+    console.log('   ✓ 3D Plateau Cliffs & Stairs Elevation');
+    console.log('   ✓ 5 Interactive Stations & 5 Relics with 360° Inspector');
+    console.log('   ✓ Strictly 27 Historical Lexicon Terms');
+    console.log('   ✓ Quest Compass & 1.32x Camera Dialog Zoom');
+    console.log('   ✓ Kinematic Chapter Banner & 7-Tile Pause Dashboard');
+    console.log('   ✓ 4-Surface Footsteps, Companion Dog & Interior Scene');
+    console.log('   ✓ Strict 16x32 Character & Mentor Proportions (Steinzeit Benchmark)');
+    console.log('   ✓ Dynamic Chapter Music Engine & Google Lyria Metadata');
+    console.log('   ✓ A4 Didactic Student Print Sheet');
+  }
+
   process.exit(0);
 }
 

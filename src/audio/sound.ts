@@ -76,8 +76,24 @@ class SoundFX {
     );
   }
 
-  step(): void {
-    this.tone(180, 0.04, 'sine', 0.04, 0);
+  private lastStepTime = 0;
+
+  step(surface: 'grass' | 'sand' | 'stone' | 'wood' | 'water' = 'grass'): void {
+    const now = performance.now();
+    if (now - this.lastStepTime < 220) return;
+    this.lastStepTime = now;
+    if (surface === 'stone') {
+      this.tone(420, 0.032, 'triangle', 0.036, 0);
+      this.tone(620, 0.02, 'sine', 0.022, 0.014);
+    } else if (surface === 'wood') {
+      this.tone(175, 0.042, 'triangle', 0.045, 0);
+    } else if (surface === 'water') {
+      this.tone(310, 0.05, 'sine', 0.035, 0);
+    } else if (surface === 'sand') {
+      this.tone(145, 0.035, 'sine', 0.028, 0);
+    } else {
+      this.tone(125, 0.03, 'sine', 0.026, 0);
+    }
   }
 
   cave(): void {

@@ -1,0 +1,72 @@
+[
+  {
+    "chapterId": 1,
+    "trackId": "ch1_polis",
+    "title": "Olivenhaine & Geburt der Polis",
+    "file": "public/assets/audio/music/ch1_polis.mp3",
+    "prompt": "16-bit SNES RPG soundtrack, ancient Greek olive grove and village agora, warm kithara lyre, gentle aulos flute, Mediterranean breeze, 92 BPM, loopable"
+  },
+  {
+    "chapterId": 2,
+    "trackId": "ch2_kolonisation",
+    "title": "Aufbruch über die Ägäis",
+    "file": "public/assets/audio/music/ch2_kolonisation.mp3",
+    "prompt": "16-bit SNES RPG sailing theme, ancient Greek colonization across the Aegean sea, adventurous lyre and pan flute, rolling waves rhythm, 108 BPM, loopable"
+  },
+  {
+    "chapterId": 3,
+    "trackId": "ch3_sparta",
+    "title": "Spartas Schilde & die Agoge",
+    "file": "public/assets/audio/music/ch3_sparta.mp3",
+    "prompt": "16-bit SNES RPG Dorian mode march, ancient Sparta military camp, deep frame drums, bronze shield rhythm, resolute aulos melody, 100 BPM, loopable"
+  },
+  {
+    "chapterId": 4,
+    "trackId": "ch4_demokratie",
+    "title": "Stimmen der Ekklesia auf der Pnyx",
+    "file": "public/assets/audio/music/ch4_demokratie.mp3",
+    "prompt": "16-bit SNES RPG noble city theme, classical Athens Agora and Pnyx assembly, bright kithara harp, stately brass and woodwinds, 96 BPM, loopable"
+  },
+  {
+    "chapterId": 5,
+    "trackId": "ch5_olymp",
+    "title": "Hymne an den Götterberg Olymp",
+    "file": "public/assets/audio/music/ch5_olymp.mp3",
+    "prompt": "16-bit SNES RPG celestial temple theme, Mount Olympus clouds and Oracle of Delphi, shimmering golden lyre, choir pads, mystical bells, 88 BPM, loopable"
+  },
+  {
+    "chapterId": 6,
+    "trackId": "ch6_thermopylen",
+    "title": "Phalanx an den Heißen Toren (Thermopylen)",
+    "file": "public/assets/audio/music/ch6_thermopylen.mp3",
+    "prompt": "16-bit SNES RPG heroic defense theme, Battle of Marathon and Thermopylae pass, driving percussion, bronze horns, tense Phrygian melody, 118 BPM, loopable"
+  },
+  {
+    "chapterId": 7,
+    "trackId": "ch7_salamis",
+    "title": "Hölzerne Mauern bei Salamis",
+    "file": "public/assets/audio/music/ch7_salamis.mp3",
+    "prompt": "16-bit SNES RPG naval battle soundtrack, Trireme fleet at Salamis strait, rhythmic rowing drumbeat, heroic brass fanfare, 122 BPM, loopable"
+  },
+  {
+    "chapterId": 8,
+    "trackId": "ch8_philosophie",
+    "title": "Eule der Athene & Dialog in der Akademie",
+    "file": "public/assets/audio/music/ch8_philosophie.mp3",
+    "prompt": "16-bit SNES RPG contemplative scholar theme, Socrates and Plato Academy in Athens, solo kithara and soft flute, reflective minor harmony, 84 BPM, loopable"
+  },
+  {
+    "chapterId": 9,
+    "trackId": "ch9_alexander",
+    "title": "Zug ans Ende der Welt",
+    "file": "public/assets/audio/music/ch9_alexander.mp3",
+    "prompt": "16-bit SNES RPG epic world map march, Alexander the Great campaign from Macedonia to Babylon and India, grand brass, oud and kithara fusion, 114 BPM, loopable"
+  },
+  {
+    "chapterId": 10,
+    "trackId": "ch10_hellenismus",
+    "title": "Das Leuchtfeuer von Alexandria (Hellenismus)",
+    "file": "public/assets/audio/music/ch10_hellenismus.mp3",
+    "prompt": "16-bit SNES RPG grand finale soundtrack, Great Library and Pharos Lighthouse of Alexandria, majestic strings, golden harp and woodwinds, 96 BPM, loopable"
+  }
+]

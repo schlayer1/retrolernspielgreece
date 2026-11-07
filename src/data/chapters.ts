@@ -1,11 +1,5 @@
-export interface LexiconEntry {
-  title: string;
-  era: string;
-  icon: string;
-  unlockHint: string;
-  milestone?: boolean;
-  text: string;
-}
+import { LEXICON, LEXICON_LIST, type LexiconEntry } from './lexicon';
+export { LEXICON, LEXICON_LIST, type LexiconEntry };
 
 export interface EpochComparisonRow {
   dimension: string;
@@ -16,6 +10,13 @@ export interface EpochComparisonRow {
 
 export type GreekPhaseComparisonRow = EpochComparisonRow;
 
+export interface ChapterMusicDef {
+  trackId: string;
+  title: string;
+  mood: string;
+  prompt: string;
+}
+
 export interface ChapterDef {
   id: number;
   title: string;
@@ -23,6 +24,8 @@ export interface ChapterDef {
   period: string;
   mentor: string;
   mentorRole: string;
+  targetInterior?: string;
+  music?: ChapterMusicDef;
   quests: string[];
   hints: string[];
   intro: Array<{ text: string }>;
@@ -115,214 +118,6 @@ export const EPOCH_COMPARISON: EpochComparisonRow[] = [
   },
 ];
 
-export const LEXICON: Record<string, LexiconEntry> = {
-  polis: {
-    title: 'Die Polis (Griechischer Stadtstaat)',
-    era: 'Archaische & Klassische Zeit',
-    icon: 'kalkstein',
-    unlockHint: 'Sprich mit Dorfältestem Nikolaos auf der Agora (Kapitel 1).',
-    milestone: true,
-    text: 'Weil Griechenland von hohen Gebirgen und hunderten Inseln zerklüftet ist, entstand kein einheitliches Großreich wie in Ägypten, sondern über 700 unabhängige Stadtstaaten („Poleis“). Jede Polis bestand aus dem Stadtkern und dem bäuerlichen Umland, hatte eigene Gesetze, Münzen und ein eigenes Heer.',
-  },
-  akropolis: {
-    title: 'Die Akropolis (Oberstadt / Burgberg)',
-    era: 'Antikes Griechenland',
-    icon: 'marmor',
-    unlockHint: 'Untersuche das Marmor-Plateau der Akropolis.',
-    milestone: true,
-    text: '„Akropolis“ bedeutet wörtlich „Oberstadt“. Auf diesem steilen Felsenberg über der Stadt suchten die Bewohner bei feindlichen Angriffen Schutz. Zugleich standen dort die prächtigsten Tempel für die Stadtgötter – am berühmtesten ist der Parthenon-Tempel für Athene in Athen.',
-  },
-  agora: {
-    title: 'Die Agora (Markt- & Versammlungsplatz)',
-    era: 'Antikes Griechenland',
-    icon: 'amphore',
-    unlockHint: 'Besuche den Marktplatz im Herzen der Stadt.',
-    text: 'Die Agora war das pulsierende Herz jeder Polis: Hier handelten Bauern, Fischer und Kaufleute unter schattigen Säulenhallen (Stoa), hier diskutierten Bürger über Politik, erfuhren Neuigkeiten und feierten religiöse Feste.',
-  },
-  hellas: {
-    title: 'Hellas & das Band der Hellenen',
-    era: 'Gesamte Griechische Antike',
-    icon: 'lorbeerkranz',
-    unlockHint: 'Schließe Kapitel 1 ab.',
-    text: 'Obwohl sich die einzelnen Poleis oft bekriegten, fühlten sich alle Griechen als ein gemeinsames Volk: Sie nannten ihr Land „Hellas“ und sich selbst „Hellenen“. Was sie einte, waren die gemeinsame Sprache, die 24 Buchstaben des Alphabets, Homers Epen, die olympischen Götter und die Olympischen Spiele.',
-  },
-  olivenbaum: {
-    title: 'Der Olivenbaum & das „flüssige Gold“',
-    era: 'Gesamte Griechische Antike',
-    icon: 'olivenoel',
-    unlockHint: 'Errichte die Olivenpresse und presse Olivenöl (Kapitel 1).',
-    milestone: true,
-    text: 'Der genügsame Olivenbaum übersteht selbst heiße Sommer auf steinigem Boden. Sein Öl war das „flüssige Gold“ der Antike: Man nutzte es zum Kochen, als Brennstoff für Tonlampen, zur Körperpflege und als lukrativstes Handelsgut für den Export.',
-  },
-  kolonisation: {
-    title: 'Die Große Kolonisation (750–550 v. Chr.)',
-    era: 'Archaische Zeit',
-    icon: 'segeltuch',
-    unlockHint: 'Sprich mit Oikist Telesikles am Hafen (Kapitel 2).',
-    milestone: true,
-    text: 'Durch starkes Bevölkerungswachstum und karge, steinige Böden reichte das Ackerland in Griechenland nicht mehr aus. Viele Bauern verschuldeten sich. Deshalb zogen tausende Griechen mit Schiffen übers Mittelmeer und Schwarze Meer und gründeten neue Tochterstädte (Apoikien) wie Neapel, Syrakus, Marseille (Massalia) und Byzanz.',
-  },
-  apoikie: {
-    title: 'Metropolis & Apoikie (Pflanzstadt)',
-    era: 'Archaische Zeit',
-    icon: 'fackel',
-    unlockHint: 'Entzünde die heilige Fackel für das Kolonistenschiff (Kapitel 2).',
-    text: 'Die Auswanderer nahmen das heilige Herdfeuer aus ihrer Mutterstadt (Metropolis) in die neue Heimat mit. Die neu gegründete Pflanzstadt (Apoikie) war jedoch keine unterdrückte Kolonie, sondern von Anfang an eine völlig selbstständige, freie Polis, die regen Handel mit der Mutterstadt trieb.',
-  },
-  amphore: {
-    title: 'Die Griechische Amphore',
-    era: 'Archaische & Klassische Zeit',
-    icon: 'amphore',
-    unlockHint: 'Töpfere eine bemalte Ton-Amphore (Kapitel 2).',
-    text: 'Amphoren waren bauchige Tonkrüge mit zwei Henkeln („Beidträger“) und spitzem Boden, damit man sie in den Sandboden von Frachtschiffen stecken konnte. In Athen bemalte man sie kunstvoll im schwarzfigurigen und später rotfigurigen Stil mit Szenen aus Göttersagen und Alltag.',
-  },
-  sparta: {
-    title: 'Sparta – Der Militärstaat Lakoniens',
-    era: 'Archaische & Klassische Zeit',
-    icon: 'aspis_schild',
-    unlockHint: 'Sprich mit Ephor Kleomenes im spartanischen Lager (Kapitel 3).',
-    milestone: true,
-    text: 'Sparta auf der Halbinsel Peloponnes besaß keine Stadtmauern – „unsere Schilde sind unsere Mauern!“. Um eine riesige Überzahl unterworfener Landarbeiter (Heloten) zu kontrollieren, verwandelten die Spartaner ihren gesamten Staat in ein einziges, streng diszipliniertes Heerlager.',
-  },
-  agoge: {
-    title: 'Die Agoge (Spartanische Erziehung)',
-    era: 'Klassisches Sparta',
-    icon: 'dory_speer',
-    unlockHint: 'Trainiere am spartanischen Übungsplatz (Kapitel 3).',
-    text: 'Ab dem 7. Lebensjahr wurden spartanische Jungen ihren Familien weggenommen und in staatlichen Kasernen (Agoge) erzogen: Barfußlaufen, Kälte, karge schwarze Blutsuppe, Ausdauertraining und absoluter Gehorsam formten sie zu den gefürchtetsten Kriegern Griechenlands. Auch spartanische Mädchen trieben Sport und genossen mehr Freiheiten als in Athen.',
-  },
-  heloten: {
-    title: 'Spartiaten, Periöken & Heloten',
-    era: 'Klassisches Sparta',
-    icon: 'gerste',
-    unlockHint: 'Schmiede Waffen in der spartanischen Schmiede (Kapitel 3).',
-    text: 'Spartas Gesellschaft war dreigeteilt: 1. Die „Spartiaten“ waren die kleine Schicht der Vollbürger und Berufskrieger. 2. Die „Periöken“ (Umwohner) waren persönlich freie Handwerker und Händler ohne politisches Stimmrecht. 3. Die „Heloten“ waren rechtlose Staatssklaven, die die Felder bestellen mussten.',
-  },
-  hoplit_phalanx: {
-    title: 'Hopliten & die Phalanx-Formation',
-    era: 'Archaische & Klassische Zeit',
-    icon: 'aspis_schild',
-    unlockHint: 'Schmiede Rundschild (Aspis) und Speer (Dory) in Kapitel 3.',
-    milestone: true,
-    text: 'Schwerbewaffnete griechische Fußsoldaten hießen „Hopliten“ (nach ihrem Rundschild). In der Schlacht kämpften sie Schulter an Schulter in einer bis zu acht Reihen tiefen Kampflinie („Phalanx“): Jeder Soldat schützte mit seinem Schild die linke Seite seines Nebenmanns – eine fast undurchdringliche Mauer aus Bronze und Speerspitzen!',
-  },
-  athen_demokratie: {
-    title: 'Athen – Die Wiege der Demokratie',
-    era: 'Klassische Zeit (ab 508 v. Chr.)',
-    icon: 'drachme',
-    unlockHint: 'Sprich mit Staatsmann Perikles auf der Pnyx (Kapitel 4).',
-    milestone: true,
-    text: 'Nach Reformen von Solon, Kleisthenes und Perikles entstand in Athen die weltweit erste „Demokratie“ (Herrschaft des Volkes): Nicht mehr Könige oder reiche Adlige allein regierten, sondern alle freien männlichen Bürger Athens entschieden gemeinsam über Gesetze, Krieg und Frieden!',
-  },
-  ekklesia: {
-    title: 'Ekklesia (Volksversammlung) & Rat der 500',
-    era: 'Klassisches Athen',
-    icon: 'kalkstein',
-    unlockHint: 'Errichte die Rednerbühne auf dem Pnyx-Hügel (Kapitel 4).',
-    text: 'Etwa 40-mal im Jahr trafen sich tausende athenische Bürger ab 18 Jahren auf dem Pnyx-Hügel zur Volksversammlung („Ekklesia“). Abgestimmt wurde per Handzeichen oder Stimmsteinen. Die meisten Ämter sowie der „Rat der 500“ (Boule) und die Volksgerichte (Heliaia) wurden per Losverfahren vergeben, damit jeder Bürger gleiche Chancen hatte. Ausgeschlossen blieben jedoch Frauen, Zugewanderte (Metöken) und Sklaven!',
-  },
-  ostrakismos: {
-    title: 'Das Scherbengericht (Ostrakismos)',
-    era: 'Klassisches Athen',
-    icon: 'ostrakon',
-    unlockHint: 'Ritze ein Ostrakon und stimme an der Urne ab (Kapitel 4).',
-    milestone: true,
-    text: 'Um zu verhindern, dass ein einzelner mächtiger Politiker sich zum Alleinherrscher (Tyrannen) aufschwang, führten die Athener das Scherbengericht ein: Einmal im Jahr ritzten die Bürger den Namen eines zu ehrgeizigen Mannes in eine Tonscherbe („Ostrakon“). Kamen mindestens 6.000 Stimmen zusammen, musste der Betroffene Athen für 10 Jahre verlassen – behielt aber sein Vermögen und seine Ehre!',
-  },
-  drachme_laureion: {
-    title: 'Silber aus Laureion & die Eulen-Drachme',
-    era: 'Klassisches Athen',
-    icon: 'drachme',
-    unlockHint: 'Präge eine Eulen-Drachme aus Silbererz (Kapitel 4).',
-    text: 'Im Süden Attikas lagen die reichen Silberbergwerke von Laureion, in denen tausende Sklaven unter schwersten Bedingungen Erz abbauten. Aus diesem Silber prägte Athen die berühmte „Eulen-Drachme“, finanzierte den Bau seiner Kriegsflotte und zahlte Tagegelder (Diäten), damit auch arme Bürger Zeit für politische Ämter hatten.',
-  },
-  olymp_goetter: {
-    title: 'Der Götterberg Olymp & die 12 Götter',
-    era: 'Gesamte Griechische Antike',
-    icon: 'weihrauch',
-    unlockHint: 'Steige durch das Wolkentor auf das Olymp-Plateau (Kapitel 5).',
-    milestone: true,
-    text: 'Die Griechen glaubten an viele Götter (Polytheismus), die auf dem höchsten Berg Griechenlands – dem fast 3.000 Meter hohen Olymp – in Wolkenschlössern thronten. Anders als in Ägypten sahen griechische Götter aus wie Menschen und hatten auch menschliche Schwächen wie Eifersucht, Zorn oder Eitelkeit: Zeus (Göttervater & Blitz), Hera (Ehe), Poseidon (Meer), Athene (Weisheit), Apollon (Kunst & Licht), Artemis (Jagd), Ares (Krieg), Aphrodite (Liebe), Hephaistos (Schmiedekunst), Hermes (Götterbote), Demeter (Ackerbau) und Hestia/Dionysos.',
-  },
-  orakel_delphi: {
-    title: 'Das Orakel von Delphi & die Pythia',
-    era: 'Gesamte Griechische Antike',
-    icon: 'fackel',
-    unlockHint: 'Befrage Priesterin Pythia am Heiligtum (Kapitel 5).',
-    text: 'Delphi galt den Griechen als „Nabel der Welt“. Im Tempel des Gottes Apollon saß die Priesterin „Pythia“ auf einem Dreifuß über einer Erdspalte und verkündete in Trance göttliche Weissagungen. Kein Stadtstaat gründete eine Kolonie oder zog in den Krieg, ohne zuvor das Orakel von Delphi um Rat zu fragen – auch wenn die Sprüche oft zweideutig waren!',
-  },
-  olympische_spiele: {
-    title: 'Olympische Spiele & Gottesfrieden',
-    era: 'Ab 776 v. Chr. alle 4 Jahre',
-    icon: 'lorbeerkranz',
-    unlockHint: 'Flechte den Siegerkranz und bestreite den Wettlauf (Kapitel 5).',
-    milestone: true,
-    text: 'Ab 776 v. Chr. trafen sich alle vier Jahre Athleten aus allen griechischen Poleis im Heiligtum von Olympia, um zu Ehren des Göttervaters Zeus im Stadionlauf, Ringkampf, Diskus- und Speerwurf oder Wagenrennen anzutreten. Während der Spiele galt die „Ekecheiria“ – der heilige Olympische Gottesfrieden: Alle Kriege mussten ruhen! Dem Sieger winkte kein Geld, sondern der unsterbliche Ruhm und ein Kranz aus Zweigen des heiligen Ölbaums (Kotinos).',
-  },
-  perserkriege_marathon: {
-    title: 'Die Perserkriege: Schlacht bei Marathon (490 v. Chr.)',
-    era: 'Klassische Zeit (500–479 v. Chr.)',
-    icon: 'aspis_schild',
-    unlockHint: 'Sprich mit König Leonidas am Gebirgspass (Kapitel 6).',
-    milestone: true,
-    text: 'Als Athen die griechischen Städte in Kleinasien beim Aufstand gegen das riesige Persische Weltreich unterstützte, schickte Großkönig Dareios I. im Jahr 490 v. Chr. eine Invasionsflotte nach Griechenland. In der Ebene von Marathon besiegten die schwer gepanzerten athenischen Hopliten unter Stratege Miltiades im Laufschritt das zahlenmäßig überlegene Perserheer. Ein Bote lief der Legende nach die rund 42 Kilometer nach Athen, rief „Wir haben gesiegt!“ – die Geburtslegende des heutigen Marathonlaufs!',
-  },
-  thermopylen: {
-    title: 'Die Thermopylen & König Leonidas (480 v. Chr.)',
-    era: 'Zweiter Perserkrieg (480 v. Chr.)',
-    icon: 'dory_speer',
-    unlockHint: 'Verstärke die Verteidigungsmauer am Engpass der Thermopylen (Kapitel 6).',
-    text: 'Zehn Jahre nach Marathon griff Dareios’ Sohn Xerxes I. mit einem gigantischen Landheer und einer riesigen Flotte an. Am schmalen Gebirgspass der „Thermopylen“ (Heiße Tore) hielt der spartanische König Leonidas mit seinen 300 Spartiaten und verbündeten Griechen das Millionenheer zwei Tage lang auf, bis ein Verräter den Persern einen geheimen Bergpfad zeigte. Ihr Opfer verschaffte der griechischen Flotte entscheidende Zeit für den Rückzug.',
-  },
-  trireme_salamis: {
-    title: 'Die Triremen & die Seeschlacht von Salamis (480 v. Chr.)',
-    era: 'Zweiter Perserkrieg (480 v. Chr.)',
-    icon: 'rammsporn',
-    unlockHint: 'Rüste die Trireme mit dem Rammsporn aus und siege bei Salamis (Kapitel 7).',
-    milestone: true,
-    text: 'Als das Orakel von Delphi verkündete, nur „hölzerne Mauern“ könnten Athen retten, deutete der kluge Stratege Themistokles dies auf Kriegsschiffe: Athen baute 200 „Triremen“ – Pfeilschnelle Dreiruderer, auf denen 170 freie Bürger auf drei Etagen ruderten, um feindliche Schiffe mit einem bronzenen Rammsporn unter der Wasserlinie aufzuschlitzen! In der engen Meeresbucht von Salamis (480 v. Chr.) lockte Themistokles die riesige persische Flotte in die Falle: Die schweren Perserschiffe verkeilten sich und wurden vernichtend geschlagen. Griechenlands Freiheit war gerettet!',
-  },
-  peloponnesischer_krieg: {
-    title: 'Der Peloponnesische Krieg (431–404 v. Chr.)',
-    era: 'Spätklassische Zeit',
-    icon: 'aspis_schild',
-    unlockHint: 'Sichere die Langen Mauern in Kapitel 8.',
-    text: 'Nach dem Sieg über die Perser stieg Athen mit seinem „Attischen Seebund“ zur reichen Seemacht auf, während Sparta den „Peloponnesischen Bund“ der Landmächte anführte. Aus Rivalität brach 431 v. Chr. ein fast 30-jähriger verheerender Bruderkrieg zwischen Athen und Sparta aus. Eine Seuche (Pest) in Athen, bei der auch Perikles starb, und die Zerstörung der athenischen Flotte führten 404 v. Chr. zum Sieg Spartas – doch am Ende waren alle griechischen Stadtstaaten völlig erschöpft.',
-  },
-  philosophie: {
-    title: 'Griechische Philosophie & Theater',
-    era: 'Klassisches Athen (5.–4. Jh. v. Chr.)',
-    icon: 'schriftrolle',
-    unlockHint: 'Führe das philosophische Gespräch mit Sokrates (Kapitel 8).',
-    milestone: true,
-    text: '„Philosophie“ bedeutet „Liebe zur Weisheit“. Statt Naturereignisse nur durch Göttermythen zu erklären, suchten griechische Denker nach vernünftigen Gesetzen (Logos): Sokrates hinterfragte auf der Agora das Scheinwissen der Menschen („Ich weiß, dass ich nichts weiß“), sein Schüler Platon gründete die berühmte „Akademie“, und dessen Schüler Aristoteles gliederte alle Wissenschaften von der Biologie bis zur Logik und wurde später der Lehrer Alexanders des Großen!',
-  },
-  alexander_der_grosse: {
-    title: 'Alexander der Große & der Zug ans Ende der Welt',
-    era: 'Aufstieg Makedoniens (336–323 v. Chr.)',
-    icon: 'sarissa_lanze',
-    unlockHint: 'Schmiede die Sarissa und löse den Gordischen Knoten (Kapitel 9).',
-    milestone: true,
-    text: 'Während sich Athen und Sparta schwächten, stieg im Norden das Königreich Makedonien unter König Philipp II. und seinem Sohn Alexander (geb. 356 v. Chr.) auf. Mit der 6 Meter langen Stoßlanze („Sarissa“) und schwerer Reiterei zog der erst 20-jährige König Alexander 334 v. Chr. gegen das Perserreich: Er durchtrennte den sagenhaften „Gordischen Knoten“, besiegte Großkönig Dareios III. bei Issos und Gaugamela, wurde in Ägypten als Pharao begrüßt und marschierte über Babylon und Persien bis zum Fluss Indus in Indien!',
-  },
-  hellenismus: {
-    title: 'Der Hellenismus & die Weltstadt Alexandria',
-    era: 'Hellenistische Epoche (336–30 v. Chr.)',
-    icon: 'schriftrolle',
-    unlockHint: 'Errichte die Große Bibliothek von Alexandria (Kapitel 9).',
-    milestone: true,
-    text: 'Auf seinem Feldzug gründete Alexander über 20 Städte namens „Alexandria“ – die berühmteste an der Nilmündung in Ägypten mit dem über 100 Meter hohen Leuchtturm (Pharos, eines der 7 Weltwunder) und der Großen Bibliothek. Durch die Verschmelzung griechischer und orientalischer Kultur („Hellenismus“) wurde Griechisch zur Weltsprache des Handels und der Wissenschaft (Archimedes, Euklid, Eratosthenes berechnete sogar den Erdumfang!).',
-  },
-  diadochenreiche: {
-    title: 'Der Tod Alexanders & die Diadochenreiche',
-    era: 'Ab 323 v. Chr.',
-    icon: 'diadochen_karte',
-    unlockHint: 'Ordne die Reichskarte bei Chronist Ptolemaios (Kapitel 10).',
-    milestone: true,
-    text: 'Im Juni 323 v. Chr. starb Alexander der Große überraschend mit nur 32 Jahren im Palast von Babylon an einem schweren Fieber. Auf die Frage, wem er sein Weltreich hinterlasse, soll er gehaucht haben: „Dem Stärksten!“ Da ein regierungsfähiger Erbe fehlte, führten seine Generäle – die „Diadochen“ (Nachfolger) – jahrzehntelange Kriege. Das Riesenreich zerbrach in drei große Königreiche: 1. Das Antigonidenreich in Makedonien/Griechenland, 2. Das riesige Seleukidenreich in Vorderasien und 3. Das Ptolemäerreich in Ägypten (aus dem später Königin Kleopatra stammte), bis schließlich das aufstrebende Rom alle Reiche eroberte.',
-  },
-};
-
 export const CHAPTERS: Record<number, ChapterDef> = {
   1: {
     id: 1,
@@ -331,6 +126,13 @@ export const CHAPTERS: Record<number, ChapterDef> = {
     period: 'ca. 800 v. Chr.',
     mentor: 'Dorfältester Nikolaos',
     mentorRole: 'Gründervater der Polis auf der Agora',
+    targetInterior: 'kerameikos_werkstatt',
+    music: {
+      trackId: 'ch1_polis',
+      title: 'Olivenhaine & Geburt der Polis',
+      mood: 'Warm, mediterran, Lyra & Aulos',
+      prompt: '16-bit SNES RPG soundtrack, ancient Greek olive grove and village agora, warm kithara lyre, gentle aulos flute, Mediterranean breeze, 92 BPM',
+    },
     quests: [
       'Sprich mit Dorfältestem Nikolaos auf der Agora (E)',
       'Sammle 2× Olivenholz und 2× hellen Kalkstein im Tal (E)',
@@ -393,6 +195,13 @@ export const CHAPTERS: Record<number, ChapterDef> = {
     period: 'ca. 750–550 v. Chr.',
     mentor: 'Kapitän & Oikist Telesikles',
     mentorRole: 'Gründer neuer Pflanzstädte (Apoikien) am Hafen',
+    targetInterior: 'kerameikos_werkstatt',
+    music: {
+      trackId: 'ch2_kolonisation',
+      title: 'Aufbruch über die Ägäis',
+      mood: 'Abenteuerlich, maritimer 6/8-Takt, Lyra & Flöte',
+      prompt: '16-bit SNES RPG sailing theme, ancient Greek colonization across the Aegean sea, adventurous lyre and pan flute, rolling waves rhythm, 108 BPM',
+    },
     quests: [
       'Sprich mit Kapitän Telesikles am Hafen von Piräus (E)',
       'Schere oder sammle 2× weiße Wolle an der Ziegenkoppel (E)',
@@ -455,6 +264,13 @@ export const CHAPTERS: Record<number, ChapterDef> = {
     period: 'ca. 600 v. Chr.',
     mentor: 'Ephor Kleomenes',
     mentorRole: 'Aufseher der Agoge & Hüter der spartanischen Ordnung',
+    targetInterior: 'parthenon_cella',
+    music: {
+      trackId: 'ch3_sparta',
+      title: 'Spartas Schilde & die Agoge',
+      mood: 'Entschlossen, dorischer Marsch, Trommeln & Aulos',
+      prompt: '16-bit SNES RPG Dorian mode march, ancient Sparta military camp, deep frame drums, bronze shield rhythm, resolute aulos melody, 100 BPM',
+    },
     quests: [
       'Sprich mit Ephor Kleomenes im spartanischen Feldlager im Nordwesten (E)',
       'Baue 3× Taygetos-Eisenerz an den dunklen Gebirgsfelsen ab (E)',
@@ -512,6 +328,13 @@ export const CHAPTERS: Record<number, ChapterDef> = {
     period: 'ca. 508–450 v. Chr.',
     mentor: 'Staatsmann Perikles',
     mentorRole: 'Gewählter Stratege & Redner der Athenischen Demokratie',
+    targetInterior: 'bouleuterion_schule',
+    music: {
+      trackId: 'ch4_demokratie',
+      title: 'Stimmen der Ekklesia auf der Pnyx',
+      mood: 'Feierlich, würdevoll, klassisches Athen',
+      prompt: '16-bit SNES RPG noble city theme, classical Athens Agora and Pnyx assembly, bright kithara harp, stately brass and woodwinds, 96 BPM',
+    },
     quests: [
       'Sprich mit Staatsmann Perikles an der Ratsversammlung (Pnyx) (E)',
       'Baue 2× Laureion-Silbererz an den glitzernden Silberadern ab (E)',
@@ -572,6 +395,13 @@ export const CHAPTERS: Record<number, ChapterDef> = {
     period: 'ca. 480 v. Chr.',
     mentor: 'Orakelpriesterin Pythia',
     mentorRole: 'Seherin von Delphi & Hüterin des Olymp-Portals',
+    targetInterior: 'parthenon_cella',
+    music: {
+      trackId: 'ch5_olymp',
+      title: 'Hymne an den Götterberg Olymp',
+      mood: 'Mystisch, erhaben, himmlische Harfen & Chöre',
+      prompt: '16-bit SNES RPG celestial temple theme, Mount Olympus clouds and Oracle of Delphi, shimmering golden lyre, choir pads, mystical bells, 88 BPM',
+    },
     quests: [
       'Sprich mit Priesterin Pythia am Rundtempel (Tholos) im Nordosten (E)',
       'Tausche auf der Agora (Taste H) weißen Marmor und Opferweihrauch ein',
@@ -632,6 +462,13 @@ export const CHAPTERS: Record<number, ChapterDef> = {
     period: '490–480 v. Chr.',
     mentor: 'König Leonidas von Sparta',
     mentorRole: 'Anführer des Hellenenbundes am Engpass der Thermopylen',
+    targetInterior: 'parthenon_cella',
+    music: {
+      trackId: 'ch6_thermopylen',
+      title: 'Phalanx an den Heißen Toren (Thermopylen)',
+      mood: 'Heroisch, dramatisch, phrygischer Modus & Kriegshörner',
+      prompt: '16-bit SNES RPG heroic defense theme, Battle of Marathon and Thermopylae pass, driving percussion, bronze horns, tense Phrygian melody, 118 BPM',
+    },
     quests: [
       'Sprich mit König Leonidas am Gebirgspass der Thermopylen (E)',
       'Sammle 2× Kalkstein und verstärke die Verteidigungsmauer am Engpass (E)',
@@ -690,6 +527,13 @@ export const CHAPTERS: Record<number, ChapterDef> = {
     period: 'September 480 v. Chr.',
     mentor: 'Flottenstratege Themistokles',
     mentorRole: 'Vater der athenischen Flotte & Sieger von Salamis',
+    targetInterior: 'kerameikos_werkstatt',
+    music: {
+      trackId: 'ch7_salamis',
+      title: 'Hölzerne Mauern bei Salamis',
+      mood: 'Treibender Rudertakt, maritimes Finale',
+      prompt: '16-bit SNES RPG naval battle soundtrack, Trireme fleet at Salamis strait, rhythmic rowing drumbeat, heroic brass fanfare, 122 BPM',
+    },
     quests: [
       'Sprich mit Stratege Themistokles am Kriegshafen von Piräus (E)',
       'Gieße 1× bronzenen Rammsporn (Embolon) im Handwerksmenü (Taste C)',
@@ -748,6 +592,13 @@ export const CHAPTERS: Record<number, ChapterDef> = {
     period: '431–399 v. Chr.',
     mentor: 'Philosoph Sokrates',
     mentorRole: 'Weiser Fragesteller auf der Agora & Lehrer Platons',
+    targetInterior: 'bouleuterion_schule',
+    music: {
+      trackId: 'ch8_philosophie',
+      title: 'Eule der Athene & Dialog in der Akademie',
+      mood: 'Nachdenklich, kontemplativ, Lyra & Holzbläser',
+      prompt: '16-bit SNES RPG contemplative scholar theme, Socrates and Plato Academy in Athens, solo kithara and soft flute, reflective minor harmony, 84 BPM',
+    },
     quests: [
       'Sprich mit dem Philosophen Sokrates am großen Theater / Akademie-Garten (E)',
       'Errichte die Schreibstube der Akademie nahe dem Theater (E)',
@@ -806,6 +657,13 @@ export const CHAPTERS: Record<number, ChapterDef> = {
     period: '336–324 v. Chr.',
     mentor: 'König Alexander der Große',
     mentorRole: 'König von Makedonien, Hegemon der Griechen & Herrscher Asiens',
+    targetInterior: 'parthenon_cella',
+    music: {
+      trackId: 'ch9_alexander',
+      title: 'Zug ans Ende der Welt',
+      mood: 'Episch, griechisch-orientalische Verschmelzung',
+      prompt: '16-bit SNES RPG epic world map march, Alexander the Great campaign from Macedonia to Babylon and India, grand brass, oud and kithara fusion, 114 BPM',
+    },
     quests: [
       'Sprich mit König Alexander dem Großen am östlichen Triumphbogen (E)',
       'Fertige 1× Makedonische Sarissa-Lanze im Handwerksmenü (Taste C)',
@@ -864,6 +722,13 @@ export const CHAPTERS: Record<number, ChapterDef> = {
     period: '323–30 v. Chr.',
     mentor: 'Chronist & König Ptolemaios',
     mentorRole: 'Weggefährte Alexanders, Diadochenherrscher & Chronist',
+    targetInterior: 'bouleuterion_schule',
+    music: {
+      trackId: 'ch10_hellenismus',
+      title: 'Das Leuchtfeuer von Alexandria (Hellenismus)',
+      mood: 'Majestätisch, wehmütig-erhaben, großes Finale',
+      prompt: '16-bit SNES RPG grand finale soundtrack, Great Library and Pharos Lighthouse of Alexandria, majestic strings, golden harp and woodwinds, 96 BPM',
+    },
     quests: [
       'Sprich mit Chronist Ptolemaios an der Großen Bibliothek (E)',
       'Untersuche das Goldene Vermächtnis Alexanders aus Babylon (E)',

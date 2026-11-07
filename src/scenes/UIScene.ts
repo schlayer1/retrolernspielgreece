@@ -9,12 +9,16 @@ import {
   GreekItemId,
   GreekItemCategory,
 } from '../data/items';
-import { GREEK_RELICS } from '../data/relics';
+import { GREEK_RELICS, RELICS } from '../data/relics';
+import { STATIONS } from '../data/stations';
 import { PlayerRole } from '../systems/SaveManager';
 import { sfx, bgm } from '../audio/sound';
+import { music } from '../audio/MusicManager';
 import { TouchControls } from '../ui/TouchControls';
 import { PrintSheetManager } from '../ui/PrintSheet';
 import { DilemmaModal } from '../ui/DilemmaModal';
+import { ArtifactInspectorModal } from '../ui/ArtifactInspectorModal';
+import { StationModal } from '../ui/StationModal';
 import { GREEK_DILEMMAS } from '../data/dilemmas';
 
 const ITEM_ICON_FILES: Record<GreekItemId, string> = {
@@ -101,8 +105,13 @@ export class UIScene extends Phaser.Scene {
   private compassEl!: HTMLElement;
   private healthFill!: HTMLElement;
   private hungerFill!: HTMLElement;
+  private knowFill!: HTMLElement;
   private healthVal!: HTMLElement;
   private hungerVal!: HTMLElement;
+  private knowVal!: HTMLElement;
+  private lexSubEl!: HTMLElement;
+  private timeSubEl!: HTMLElement;
+  private musicSubEl!: HTMLElement;
   private hotbarEl!: HTMLElement;
   private hintEl!: HTMLElement;
   private toastEl!: HTMLElement;
@@ -122,12 +131,16 @@ export class UIScene extends Phaser.Scene {
     | 'pause'
     | 'trade'
     | 'relic'
+    | 'inspector'
+    | 'station'
     | 'cert'
     | 'portal'
     | 'dilemma'
     | 'milestone' = 'none';
 
   private dilemmaModal = new DilemmaModal();
+  private artifactInspector = new ArtifactInspectorModal();
+  private stationModal = new StationModal();
 
   private selectedLexId: string = Object.keys(LEXICON)[0];
   private selectedBagCategory: 'all' | GreekItemCategory = 'all';
@@ -239,10 +252,13 @@ export class UIScene extends Phaser.Scene {
         this.toggleModal('timeline', () => this.openTimeline());
       } else if (ev.code === 'KeyU') {
         this.toggleModal('cert', () => this.openCertificate());
+      } else if (ev.code === 'KeyK') {
+        this.toggleModal('portal', () => this.openEpochPortal(false));
       } else if (ev.code === 'KeyR') {
         this.toggleModal('dilemma', () => this.openDilemma());
       } else if (ev.code === 'KeyM') {
         const muted = bgm.toggleMute();
+        music.toggleMute();
         this.updateMuteBtn();
         this.showToast(muted ? '🔇 Ton ausgeschaltet' : '🔊 Ton eingeschaltet');
       } else if (ev.code.startsWith('Digit')) {
@@ -252,6 +268,87 @@ export class UIScene extends Phaser.Scene {
         }
       }
     });
+
+    // Global verification hooks for automated browser inspection
+    const w = window as unknown as Record<string, unknown>;
+    w.__CHAPTERS = Object.values(CHAPTERS);
+    w.__RELICS = RELICS;
+    w.__STATIONS = STATIONS;
+    w.__openMentorDialog = (arg?: number | { id?: number }) => {
+      const chId = typeof arg === 'object' && arg !== null ? arg.id : arg;
+      const ch = CHAPTERS[chId ?? state.chapter] ?? CHAPTERS[1];
+      this.openDialogSpec({
+        speaker: `${ch.mentor} (${ch.mentorRole})`,
+        nodes: [...ch.intro, { text: `🎯 <strong>Aufgabe:</strong>\n${ch.quests[0]}` }],
+      });
+    };
+    w.__toggleModal = (name: string) => {
+      switch (name) {
+        case 'P':
+        case 'pause':
+          this.openPause();
+          break;
+        case 'I':
+        case 'bag':
+        case 'inventory':
+          this.openBag();
+          break;
+        case 'C':
+        case 'craft':
+          this.openCraft();
+          break;
+        case 'V':
+        case 'build':
+          this.openBuild();
+          break;
+        case 'H':
+        case 'trade':
+          this.openTrade();
+          break;
+        case 'L':
+        case 'lexicon':
+          this.openLexicon();
+          break;
+        case 'Z':
+        case 'timeline':
+          this.openTimeline();
+          break;
+        case 'K':
+        case 'epochs':
+        case 'portal':
+          this.openEpochPortal(false);
+          break;
+        case 'U':
+        case 'certificate':
+        case 'cert':
+          this.openCertificate();
+          break;
+        case 'R':
+        case 'dilemma':
+          this.openDilemma();
+          break;
+        case 'inspector':
+          this.openArtifactInspector();
+          break;
+        case 'station':
+          this.openStation();
+          break;
+      }
+    };
+    w.__closeModal = () => {
+      this.dialogDock.classList.remove('open');
+      this.activeDialogSpec = undefined;
+      (this.scene.get('World') as any)?.resetDialogCamera?.();
+      this.closeModal();
+    };
+    w.__openStation = (id?: string | { id?: string }) => {
+      const stId = typeof id === 'object' && id !== null ? id.id : id;
+      this.openStation(stId);
+    };
+    w.__openArtifactInspector = (id?: string | { id?: string }) => {
+      const relId = typeof id === 'object' && id !== null ? id.id : id;
+      this.openArtifactInspector(relId);
+    };
 
     this.refreshHUD();
 
@@ -276,62 +373,70 @@ export class UIScene extends Phaser.Scene {
 
         <div class="hud-right">
           <div style="display:flex;align-items:flex-start;gap:6px;" class="hud-top-right-group">
-            <div class="hud-bars-card">
-              <div class="hud-bar-row">
-                <span>🛡️ Schutz</span>
+            <div class="hud-bars-card" id="hud-bars-card">
+              <div class="hud-bar-row" title="Versorgung / Sättigung (Taste F zum Essen)">
+                <span>🫒 Versorgung</span>
                 <div class="hud-bar-track">
-                  <div class="hud-bar-fill" id="hud-health-fill" style="background:#ef4444;width:100%"></div>
-                </div>
-                <span id="hud-health-val" style="min-width:34px;text-align:right">100%</span>
-              </div>
-              <div class="hud-bar-row" title="Sättigung (Taste F zum Essen)">
-                <span>🫒 Sättigung</span>
-                <div class="hud-bar-track">
-                  <div class="hud-bar-fill" id="hud-hunger-fill" style="background:#f59e0b;width:100%"></div>
+                  <div class="hud-bar-fill" id="hud-hunger-fill" style="background:linear-gradient(90deg,#ea580c,#fbbf24);width:100%"></div>
                 </div>
                 <span id="hud-hunger-val" style="min-width:34px;text-align:right">100%</span>
               </div>
-              <div class="hud-bar-subinfo" style="display:flex;justify-content:space-between;font-size:11px;color:#fde68a;border-top:1px solid rgba(232,193,112,0.25);padding-top:3px;">
-                <span id="hud-role-label">⛵ Seefahrer</span>
-                <span id="hud-relic-label">🏺 Relikte: 0 / 5</span>
+              <div class="hud-bar-row">
+                <span>🛡️ Schutz</span>
+                <div class="hud-bar-track">
+                  <div class="hud-bar-fill" id="hud-health-fill" style="background:linear-gradient(90deg,#16a34a,#4ade80);width:100%"></div>
+                </div>
+                <span id="hud-health-val" style="min-width:34px;text-align:right">100%</span>
+              </div>
+              <div class="hud-bar-row">
+                <span>📜 Wissen</span>
+                <div class="hud-bar-track">
+                  <div class="hud-bar-fill" id="hud-know-fill" style="background:linear-gradient(90deg,#2563eb,#60a5fa);width:0%"></div>
+                </div>
+                <span id="hud-know-val" style="min-width:34px;text-align:right">0%</span>
+              </div>
+              <div class="hud-bar-subinfo" style="display:flex;justify-content:space-between;gap:8px;font-size:11px;color:#fde68a;border-top:1px solid rgba(232,193,112,0.25);padding-top:3px;">
+                <span id="hud-lex-sub">Lexikon: 0/27</span>
+                <span id="hud-time-sub">☀️ Tag</span>
+                <span id="hud-music-sub">🎵 Musik: An</span>
               </div>
             </div>
-            <!-- Kompakter einzelner Menü-Button für den mobilen Handymodus -->
+            <!-- Kompakter einzelner Menü-Button für den mobilen Handymodus (<450px) -->
             <button class="retro-btn hud-mobile-menu-btn" id="btn-mobile-menu" style="display:none;" title="Spielmenü & Werkzeuge öffnen">
               ⏸ Menü
             </button>
           </div>
 
           <div class="hud-btn-row">
-            <button class="retro-btn" id="btn-bag" title="Rucksack & Vorräte (I / B)">
-              🎒 Rucksack <span class="key-badge">I</span>
+            <button class="retro-btn" id="btn-pause" title="Pause, Statistik & Hefter-Code (P / ESC)">
+              <span class="key-badge">P</span> ⏸ Pause
             </button>
-            <button class="retro-btn" id="btn-craft" title="Werkstatt & Handwerk (C)">
-              ⚒️ Handwerk <span class="key-badge">C</span>
+            <button class="retro-btn" id="btn-bag" title="Beutel, Vorräte & 360°-Relikte (I / B)">
+              <span class="key-badge">I</span> 🎒 Beutel
             </button>
-            <button class="retro-btn" id="btn-build" title="Polis-Bauwerke errichten (V)">
-              🏛️ Bauen <span class="key-badge">V</span>
+            <button class="retro-btn" id="btn-craft" title="Handwerk & Polis-Bauwerke (C / V)">
+              <span class="key-badge">C</span> Handwerk
             </button>
-            <button class="retro-btn" id="btn-trade" title="Agora-Seehandel (H)">
-              ⚖️ Handel <span class="key-badge">H</span>
+            <button class="retro-btn" id="btn-trade" title="Agora-Seehandel & Ekklesia-Rat (H / R)">
+              <span class="key-badge">H</span> Rat/Handel
             </button>
             <button class="retro-btn" id="btn-lex" title="Hellas-Lexikon & Wissen (L)">
-              📖 Lexikon <span class="key-badge">L</span>
+              <span class="key-badge">L</span> Lexikon
             </button>
-            <button class="retro-btn" id="btn-time" title="Epochen-Vergleich & Kapitelwahl (Z)">
-              ⏳ Epochen <span class="key-badge">Z</span>
+            <button class="retro-btn" id="btn-time" title="Zeitstrahl & Epochen-Vergleich (Z)">
+              <span class="key-badge">Z</span> Zeitstrahl
+            </button>
+            <button class="retro-btn" id="btn-eat" title="Proviant essen (F)">
+              <span class="key-badge">F</span> Essen
+            </button>
+            <button class="retro-btn" id="btn-mute" title="Musik an/aus (M)">
+              <span class="key-badge">M</span> 🎵 Musik
+            </button>
+            <button class="retro-btn" id="btn-portal" title="Kapitel- & Epochen-Auswahl (K)">
+              <span class="key-badge">K</span> Epoche
             </button>
             <button class="retro-btn" id="btn-cert" title="Hefter-Urkunde drucken (U)">
-              🎓 Urkunde <span class="key-badge">U</span>
-            </button>
-            <button class="retro-btn" id="btn-dilemma" title="Volksversammlung & Rat (R)" style="border-color:#ca8a04;">
-              ⚖️ Rat <span class="key-badge">R</span>
-            </button>
-            <button class="retro-btn" id="btn-mute" title="Ton an/aus (M)">
-              🔊 <span class="key-badge">M</span>
-            </button>
-            <button class="retro-btn" id="btn-pause" title="Pause, Statistik & Hefter-Code (P / ESC)">
-              ⏸️ Pause <span class="key-badge">P</span>
+              <span class="key-badge">U</span> Urkunde
             </button>
           </div>
         </div>
@@ -365,8 +470,13 @@ export class UIScene extends Phaser.Scene {
     this.compassEl = document.getElementById('hud-compass')!;
     this.healthFill = document.getElementById('hud-health-fill')!;
     this.hungerFill = document.getElementById('hud-hunger-fill')!;
+    this.knowFill = document.getElementById('hud-know-fill')!;
     this.healthVal = document.getElementById('hud-health-val')!;
     this.hungerVal = document.getElementById('hud-hunger-val')!;
+    this.knowVal = document.getElementById('hud-know-val')!;
+    this.lexSubEl = document.getElementById('hud-lex-sub')!;
+    this.timeSubEl = document.getElementById('hud-time-sub')!;
+    this.musicSubEl = document.getElementById('hud-music-sub')!;
     this.hotbarEl = document.getElementById('hud-hotbar')!;
     this.hintEl = document.getElementById('hud-hint')!;
     this.toastEl = document.getElementById('hud-toast')!;
@@ -377,12 +487,12 @@ export class UIScene extends Phaser.Scene {
     document.getElementById('btn-bag')!.onclick = () => this.openBag();
     document.getElementById('btn-hotbar-bag')!.onclick = () => this.openBag();
     document.getElementById('btn-craft')!.onclick = () => this.openCraft();
-    document.getElementById('btn-build')!.onclick = () => this.openBuild();
     document.getElementById('btn-trade')!.onclick = () => this.openTrade();
     document.getElementById('btn-lex')!.onclick = () => this.openLexicon();
     document.getElementById('btn-time')!.onclick = () => this.openTimeline();
+    document.getElementById('btn-eat')!.onclick = () => this.eatFood();
+    document.getElementById('btn-portal')!.onclick = () => this.openTimeline();
     document.getElementById('btn-cert')!.onclick = () => this.openCertificate();
-    document.getElementById('btn-dilemma')!.onclick = () => this.openDilemma();
     document.getElementById('btn-pause')!.onclick = () => this.openPause();
     document.getElementById('btn-mobile-menu')!.onclick = () => this.openPause();
 
@@ -395,6 +505,7 @@ export class UIScene extends Phaser.Scene {
 
     document.getElementById('btn-mute')!.onclick = () => {
       bgm.toggleMute();
+      music.toggleMute();
       this.updateMuteBtn();
     };
 
@@ -412,7 +523,10 @@ export class UIScene extends Phaser.Scene {
   private updateMuteBtn(): void {
     const btn = document.getElementById('btn-mute');
     if (btn) {
-      btn.innerHTML = `${bgm.isMutedState() ? '🔇' : '🔊'} <span class="key-badge">M</span>`;
+      btn.innerHTML = `<span class="key-badge">M</span> ${bgm.isMutedState() ? '🔇 Stumm' : '🎵 Musik'}`;
+    }
+    if (this.musicSubEl) {
+      this.musicSubEl.textContent = `🎵 Musik: ${bgm.isMutedState() ? 'Aus' : 'An'}`;
     }
   }
 
@@ -453,18 +567,24 @@ export class UIScene extends Phaser.Scene {
 
     const hp = Math.round(state.safety);
     const hg = Math.round(state.food);
+    const kn = Math.min(100, Math.round(state.knowledge));
     this.healthFill.style.width = `${hp}%`;
     this.hungerFill.style.width = `${hg}%`;
+    if (this.knowFill) this.knowFill.style.width = `${kn}%`;
     this.healthVal.textContent = `${hp}%`;
     this.hungerVal.textContent = `${hg}%`;
+    if (this.knowVal) this.knowVal.textContent = `${kn}%`;
 
-    const roleDef = GREEK_ROLES[state.playerRole] ?? GREEK_ROLES.sailor;
-    const roleEl = document.getElementById('hud-role-label');
-    if (roleEl) roleEl.textContent = `${roleDef.icon} ${roleDef.name}`;
-
-    const relicEl = document.getElementById('hud-relic-label');
-    if (relicEl) {
-      relicEl.textContent = `🏺 Relikte: ${state.relicsFound.length} / 5`;
+    const lexTotal = Object.keys(LEXICON).length;
+    if (this.lexSubEl) {
+      this.lexSubEl.textContent = `Lexikon: ${state.lexicon.length}/${lexTotal}`;
+    }
+    if (this.timeSubEl) {
+      const isNight = state.dayTime > 0.72 || state.dayTime < 0.05;
+      this.timeSubEl.textContent = isNight ? '🌙 Nacht' : '☀️ Tag';
+    }
+    if (this.musicSubEl) {
+      this.musicSubEl.textContent = `🎵 Musik: ${bgm.isMutedState() ? 'Aus' : 'An'}`;
     }
 
     // Hotbar
@@ -589,6 +709,7 @@ export class UIScene extends Phaser.Scene {
     this.activeDialogIndex = 0;
     state.modal = true;
     state.touch?.setVisible?.(false);
+    (this.scene.get('World') as any)?.focusOnDialog?.();
     this.renderCurrentDialogNode();
   }
 
@@ -599,6 +720,7 @@ export class UIScene extends Phaser.Scene {
       this.dialogDock.classList.remove('open');
       state.modal = this.activeModal !== 'none';
       state.touch?.setVisible?.(!state.modal);
+      (this.scene.get('World') as any)?.resetDialogCamera?.();
       const done = this.activeDialogSpec.onDone;
       this.activeDialogSpec = undefined;
       if (done) done();
@@ -1267,7 +1389,10 @@ export class UIScene extends Phaser.Scene {
       this.modalCard.innerHTML = `
         <div class="modal-header">
           <h2 class="modal-title">⚒️ Griechische Werkstatt & Handwerk</h2>
-          <button class="retro-btn" id="craft-close-btn">Schließen ✕</button>
+          <div style="display:flex;gap:8px;">
+            <button class="retro-btn" id="craft-to-build-btn">🏛️ Bauwerke (V)</button>
+            <button class="retro-btn" id="craft-close-btn">Schließen ✕</button>
+          </div>
         </div>
         <div class="modal-body">
           <p style="margin-top:0;font-size:13.5px;color:#fde68a">
@@ -1317,6 +1442,7 @@ export class UIScene extends Phaser.Scene {
       `;
 
       document.getElementById('craft-close-btn')!.onclick = () => this.closeModal();
+      document.getElementById('craft-to-build-btn')!.onclick = () => this.openBuild();
       this.modalCard.querySelectorAll('[data-recipe]').forEach((el) => {
         el.addEventListener('click', () => {
           const rId = (el as HTMLElement).dataset.recipe!;
@@ -1352,7 +1478,10 @@ export class UIScene extends Phaser.Scene {
       this.modalCard.innerHTML = `
         <div class="modal-header">
           <h2 class="modal-title">🏛️ Architektur der Polis – Bauwerke errichten</h2>
-          <button class="retro-btn" id="build-close-btn">Schließen ✕</button>
+          <div style="display:flex;gap:8px;">
+            <button class="retro-btn" id="build-to-craft-btn">⚒️ Handwerk (C)</button>
+            <button class="retro-btn" id="build-close-btn">Schließen ✕</button>
+          </div>
         </div>
         <div class="modal-body">
           <p style="margin-top:0;font-size:13.5px;color:#fde68a">
@@ -1392,6 +1521,7 @@ export class UIScene extends Phaser.Scene {
       `;
 
       document.getElementById('build-close-btn')!.onclick = () => this.closeModal();
+      document.getElementById('build-to-craft-btn')!.onclick = () => this.openCraft();
       this.modalCard.querySelectorAll('[data-bld]').forEach((el) => {
         el.addEventListener('click', () => {
           const bId = (el as HTMLElement).dataset.bld!;
@@ -1423,8 +1553,11 @@ export class UIScene extends Phaser.Scene {
     const render = () => {
       this.modalCard.innerHTML = `
         <div class="modal-header">
-          <h2 class="modal-title">⚖️ Agora & Mittelmeer-Seehandel (Piräus)</h2>
-          <button class="retro-btn" id="trade-close-btn">Schließen ✕</button>
+          <h2 class="modal-title">⚖️ Agora, Volksversammlung & Seehandel (Piräus)</h2>
+          <div style="display:flex;gap:8px;">
+            <button class="retro-btn" id="trade-to-dilemma-btn">⚖️ Ekklesia-Dilemma (R)</button>
+            <button class="retro-btn" id="trade-close-btn">Schließen ✕</button>
+          </div>
         </div>
         <div class="modal-body">
           <p style="margin-top:0;font-size:13.5px;color:#fde68a">
@@ -1460,6 +1593,7 @@ export class UIScene extends Phaser.Scene {
       `;
 
       document.getElementById('trade-close-btn')!.onclick = () => this.closeModal();
+      document.getElementById('trade-to-dilemma-btn')!.onclick = () => this.openDilemma();
       this.modalCard.querySelectorAll('[data-trade]').forEach((el) => {
         el.addEventListener('click', () => {
           const tId = (el as HTMLElement).dataset.trade!;
@@ -1890,11 +2024,11 @@ export class UIScene extends Phaser.Scene {
                 const isAnswered = state.relicQuizAnswered.includes(r.id);
                 const isFound = state.relicsFound.includes(r.id);
                 return `
-                  <div class="relic-card ${isFound ? 'found' : 'locked'}">
+                  <div class="relic-card ${isFound ? 'found' : 'locked'}" data-relic-inspect="${r.id}" style="cursor:pointer;" title="Klicken für 360°-Quelleninspektor">
                     ${relicIconHtml(r.id, 30)}
                     <div class="relic-name">${r.title}</div>
                     <div style="font-size:10px;font-weight:800;color:${isAnswered ? '#15803d' : isFound ? '#b45309' : '#6b533b'};">
-                      ${isAnswered ? '✅ Erforscht (Quiz gelöst)' : isFound ? '⏳ Geborgen (Quiz offen)' : '🔒 Noch verborgen'}
+                      ${isAnswered ? '✅ Erforscht (360°)' : isFound ? '🔍 360°-Inspektor öffnen' : '🔒 Noch verborgen'}
                     </div>
                   </div>
                 `;
@@ -1963,6 +2097,12 @@ export class UIScene extends Phaser.Scene {
     document.getElementById('pause-resume-btn')!.onclick = () => this.closeModal();
     document.getElementById('pause-close-btn')!.onclick = () => this.closeModal();
     document.getElementById('pause-epoch-btn')!.onclick = () => this.openTimeline();
+    this.modalCard.querySelectorAll('[data-relic-inspect]').forEach((el) => {
+      el.addEventListener('click', () => {
+        const rId = (el as HTMLElement).dataset.relicInspect!;
+        this.openArtifactInspector(rId);
+      });
+    });
 
     document.getElementById('pause-mute-btn')!.onclick = () => {
       bgm.toggleMute();
@@ -2123,5 +2263,58 @@ export class UIScene extends Phaser.Scene {
       this.showToast(`⚖️ Beschluss der Volksversammlung ratifiziert: ${opt.title}`);
       this.closeModal();
     });
+  }
+
+  // ---------------- 360°-Quelleninspektor Modal ----------------
+  public openArtifactInspector(relicId?: string): void {
+    const id = relicId || state.relicsFound[0] || 'relic_amphore';
+    const def = RELICS.find((r) => r.id === id) || RELICS[0];
+    if (!def) return;
+    this.activeModal = 'relic';
+    state.modal = true;
+    this.modalCard.classList.remove('dark');
+    sfx.click();
+    const inspector = new ArtifactInspectorModal();
+    inspector.render(this.modalCard, def, () => {
+      if (!state.relicsFound.includes(def.id)) {
+        state.relicsFound.push(def.id);
+      }
+      if (!state.relicQuizAnswered.includes(def.id)) {
+        state.relicQuizAnswered.push(def.id);
+        state.knowledge = Math.min(100, state.knowledge + 8);
+      }
+      state.persist();
+      this.refreshHUD();
+      this.showToast(`🏺 Relikt im 360°-Inspektor erforscht: ${def.name}`);
+      this.closeModal();
+    });
+    this.openModalCard();
+  }
+
+  // ---------------- Didaktische Mitmach-Station Modal ----------------
+  public openStation(stationId?: string): void {
+    const id = stationId || 'station_olivenpresse';
+    const def = STATIONS.find((s) => s.id === id) || STATIONS[0];
+    if (!def) return;
+    this.activeModal = 'station';
+    state.modal = true;
+    this.modalCard.classList.remove('dark');
+    sfx.click();
+    const modal = new StationModal();
+    modal.render(
+      this.modalCard,
+      def,
+      () => {
+        state.storyFlags[`done_${def.id}`] = true;
+        state.knowledge = Math.min(100, state.knowledge + 10);
+        state.persist();
+        this.refreshHUD();
+        this.showToast(`⚙️ Station gemeistert: ${def.title}`);
+      },
+      () => {
+        this.closeModal();
+      }
+    );
+    this.openModalCard();
   }
 }

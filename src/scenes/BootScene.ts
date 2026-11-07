@@ -131,8 +131,11 @@ export class BootScene extends Phaser.Scene {
 
     // 1. Basis-Objekt-, Farm- & Welt-Sheets
     this.load.atlas('world', 'assets/world/world_atlas.png', 'assets/world/world_atlas.json');
+    this.load.atlas('world_atlas', 'assets/world/world_atlas.png', 'assets/world/world_atlas.json');
     this.load.image('ground_med_a2', 'assets/world/ground_med_a2.png');
     this.load.image('ground_a2', 'assets/world/ground_a2.png');
+    this.load.image('cliffs_nature', 'assets/world/cliffs_nature.png');
+    this.load.image('cliffs_desert', 'assets/world/cliffs_desert.png');
     this.load.image('objects', 'assets/gfx/objects.png');
     this.load.image('farm', 'assets/gfx/farm.png');
     this.load.image('ores', 'assets/gfx/ores.png');
@@ -150,6 +153,14 @@ export class BootScene extends Phaser.Scene {
     }
 
     // 3. Griechische Spielfiguren & 10 Kapitel-Mentoren (16x32 Spritesheets, 4-Wege-Animationen)
+    this.load.spritesheet('player_male', 'assets/gfx/player_greek_male.png', {
+      frameWidth: 16,
+      frameHeight: 32,
+    });
+    this.load.spritesheet('player_female', 'assets/gfx/player_greek_female.png', {
+      frameWidth: 16,
+      frameHeight: 32,
+    });
     this.load.spritesheet('player_greek_male', 'assets/gfx/player_greek_male.png', {
       frameWidth: 16,
       frameHeight: 32,
@@ -165,14 +176,22 @@ export class BootScene extends Phaser.Scene {
       });
     }
 
-    // 4. Autonome mediterrane Fauna (Ziegen & Rinder) - 80x80px Frames!
-    this.load.spritesheet('animal_cow', 'assets/gfx/cow.png', {
-      frameWidth: 80,
-      frameHeight: 80,
+    // 4. Autonome mediterrane Fauna (Ziegen, Schafe & Rinder) - 32x32px SNES Frames (Scale 1.0)!
+    this.load.spritesheet('sdv_cow', 'assets/fauna/sdv_cow.png', {
+      frameWidth: 32,
+      frameHeight: 32,
     });
-    this.load.spritesheet('animal_goat', 'assets/gfx/goat.png', {
-      frameWidth: 80,
-      frameHeight: 80,
+    this.load.spritesheet('sdv_goat', 'assets/fauna/sdv_goat.png', {
+      frameWidth: 32,
+      frameHeight: 32,
+    });
+    this.load.spritesheet('sdv_sheep', 'assets/fauna/sdv_sheep.png', {
+      frameWidth: 32,
+      frameHeight: 32,
+    });
+    this.load.spritesheet('sdv_critters', 'assets/fauna/sdv_critters.png', {
+      frameWidth: 16,
+      frameHeight: 16,
     });
     this.load.spritesheet('dog_molosser', 'assets/fauna/dog_molosser.png', {
       frameWidth: 32,
@@ -252,6 +271,34 @@ export class BootScene extends Phaser.Scene {
         frames: [{ key: 'player_greek_female', frame: start }],
         frameRate: 1,
       });
+      this.anims.create({
+        key: `player_greek_male-walk-${dir}`,
+        frames: this.anims.generateFrameNumbers('player_greek_male', {
+          start,
+          end: start + 3,
+        }),
+        frameRate: 8,
+        repeat: -1,
+      });
+      this.anims.create({
+        key: `player_greek_male-idle-${dir}`,
+        frames: [{ key: 'player_greek_male', frame: start }],
+        frameRate: 1,
+      });
+      this.anims.create({
+        key: `player_greek_female-walk-${dir}`,
+        frames: this.anims.generateFrameNumbers('player_greek_female', {
+          start,
+          end: start + 3,
+        }),
+        frameRate: 8,
+        repeat: -1,
+      });
+      this.anims.create({
+        key: `player_greek_female-idle-${dir}`,
+        frames: [{ key: 'player_greek_female', frame: start }],
+        frameRate: 1,
+      });
     });
 
     // NPC-Animationen
@@ -268,48 +315,59 @@ export class BootScene extends Phaser.Scene {
       });
     }
 
-    // Tier-Animationen (Ziege & Rind: 80x80px Frames, Idle = Frame 0, Walk = Frames 4..7)
+    // Tier-Animationen (Ziege, Schaf & Rind: native 32x32px SNES Frames, Scale 1.0)
     this.anims.create({
       key: 'idle-cow',
-      frames: [{ key: 'animal_cow', frame: 0 }],
+      frames: [{ key: 'sdv_cow', frame: 0 }],
       frameRate: 1,
     });
     this.anims.create({
       key: 'cow-idle',
-      frames: [{ key: 'animal_cow', frame: 0 }],
+      frames: [{ key: 'sdv_cow', frame: 0 }],
       frameRate: 1,
     });
     this.anims.create({
       key: 'walk-cow',
-      frames: this.anims.generateFrameNumbers('animal_cow', { start: 4, end: 7 }),
+      frames: this.anims.generateFrameNumbers('sdv_cow', { start: 0, end: 3 }),
       frameRate: 5,
       repeat: -1,
     });
     this.anims.create({
       key: 'cow-walk',
-      frames: this.anims.generateFrameNumbers('animal_cow', { start: 4, end: 7 }),
+      frames: this.anims.generateFrameNumbers('sdv_cow', { start: 0, end: 3 }),
       frameRate: 5,
       repeat: -1,
     });
     this.anims.create({
       key: 'idle-goat',
-      frames: [{ key: 'animal_goat', frame: 0 }],
+      frames: [{ key: 'sdv_goat', frame: 0 }],
       frameRate: 1,
     });
     this.anims.create({
       key: 'goat-idle',
-      frames: [{ key: 'animal_goat', frame: 0 }],
+      frames: [{ key: 'sdv_goat', frame: 0 }],
       frameRate: 1,
     });
     this.anims.create({
       key: 'walk-goat',
-      frames: this.anims.generateFrameNumbers('animal_goat', { start: 4, end: 7 }),
+      frames: this.anims.generateFrameNumbers('sdv_goat', { start: 0, end: 3 }),
       frameRate: 6,
       repeat: -1,
     });
     this.anims.create({
       key: 'goat-walk',
-      frames: this.anims.generateFrameNumbers('animal_goat', { start: 4, end: 7 }),
+      frames: this.anims.generateFrameNumbers('sdv_goat', { start: 0, end: 3 }),
+      frameRate: 6,
+      repeat: -1,
+    });
+    this.anims.create({
+      key: 'idle-sheep',
+      frames: [{ key: 'sdv_sheep', frame: 0 }],
+      frameRate: 1,
+    });
+    this.anims.create({
+      key: 'walk-sheep',
+      frames: this.anims.generateFrameNumbers('sdv_sheep', { start: 0, end: 3 }),
       frameRate: 6,
       repeat: -1,
     });
