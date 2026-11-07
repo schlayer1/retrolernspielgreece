@@ -405,22 +405,27 @@ export class BootScene extends Phaser.Scene {
       sw?: number,
       sh?: number,
     ): string => {
-      if (!this.textures.exists(texKey)) return '';
-      const src = this.textures.get(texKey).getSourceImage() as
-        | HTMLImageElement
-        | HTMLCanvasElement;
-      if (!src) return '';
-      const w = sw ?? src.width;
-      const h = sh ?? src.height;
-      const x = sx ?? 0;
-      const y = sy ?? 0;
-      const c = document.createElement('canvas');
-      c.width = w;
-      c.height = h;
-      const ctx = c.getContext('2d')!;
-      ctx.imageSmoothingEnabled = false;
-      ctx.drawImage(src, x, y, w, h, 0, 0, w, h);
-      return c.toDataURL();
+      try {
+        if (!this.textures.exists(texKey)) return '';
+        const src = this.textures.get(texKey).getSourceImage() as
+          | HTMLImageElement
+          | HTMLCanvasElement;
+        if (!src) return '';
+        const w = sw ?? src.width;
+        const h = sh ?? src.height;
+        const x = sx ?? 0;
+        const y = sy ?? 0;
+        const c = document.createElement('canvas');
+        c.width = w;
+        c.height = h;
+        const ctx = c.getContext('2d')!;
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(src, x, y, w, h, 0, 0, w, h);
+        return c.toDataURL();
+      } catch (e) {
+        console.warn(`Could not extract preview dataURL for ${texKey}:`, e);
+        return '';
+      }
     };
 
     state.malePreviewUrl = toDataUrl('player_greek_male', 0, 0, 16, 32);

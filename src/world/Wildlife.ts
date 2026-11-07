@@ -88,10 +88,21 @@ export class WildlifeManager {
       labelOffsetY: cfg.labelOffsetY ?? -16,
     };
     if (animal.idleAnim) {
-      animal.sprite.play(animal.idleAnim, true);
+      this.playAnim(animal.sprite, animal.idleAnim);
     }
     this.animals.push(animal);
     return animal;
+  }
+
+  private playAnim(sprite: Phaser.GameObjects.Sprite, animKey?: string): void {
+    if (!animKey || !sprite || !sprite.active) return;
+    if (this.scene.anims.exists(animKey)) {
+      try {
+        sprite.play(animKey, true);
+      } catch (err) {
+        console.warn(`Could not play anim ${animKey}:`, err);
+      }
+    }
   }
 
   public getNearestAnimal(x: number, y: number, maxDist = 48): RoamingAnimal | null {
@@ -177,12 +188,12 @@ export class WildlifeManager {
             a.sprite.y = Phaser.Math.Clamp(a.sprite.y + Math.sin(ang) * step, a.bounds.minY, a.bounds.maxY);
             // Goat-Sprite schaut im Original nach links
             a.sprite.setFlipX(Math.cos(ang) > 0);
-            if (a.walkAnim) a.sprite.play(a.walkAnim, true);
+            if (a.walkAnim) this.playAnim(a.sprite, a.walkAnim);
           } else {
             // Nah am Spieler bleibt sie ruhig grasend stehen
             a.state = 'idle';
             a.timer = 1.5;
-            if (a.idleAnim) a.sprite.play(a.idleAnim, true);
+            if (a.idleAnim) this.playAnim(a.sprite, a.idleAnim);
           }
           a.sprite.setDepth(a.sprite.y + 12);
           a.syncLabel?.(a.sprite.x, a.sprite.y + a.labelOffsetY);
@@ -193,7 +204,7 @@ export class WildlifeManager {
       // Normale Weide-/Wander-Zustandsmaschine
       a.timer -= dt;
       if (a.state === 'idle' || a.state === 'lured') {
-        if (a.idleAnim) a.sprite.play(a.idleAnim, true);
+        if (a.idleAnim) this.playAnim(a.sprite, a.idleAnim);
         if (a.timer <= 0) {
           a.state = 'walk';
           a.timer = this.rng.realInRange(1.8, 3.8);
@@ -210,7 +221,7 @@ export class WildlifeManager {
           }
           a.targetX = tx;
           a.targetY = ty;
-          if (a.walkAnim) a.sprite.play(a.walkAnim, true);
+          if (a.walkAnim) this.playAnim(a.sprite, a.walkAnim);
         }
       } else if (a.state === 'walk') {
         const dx = a.targetX - a.sprite.x;
@@ -219,7 +230,7 @@ export class WildlifeManager {
         if (dist < 4 || a.timer <= 0) {
           a.state = 'idle';
           a.timer = this.rng.realInRange(2.4, 5.0);
-          if (a.idleAnim) a.sprite.play(a.idleAnim, true);
+          if (a.idleAnim) this.playAnim(a.sprite, a.idleAnim);
         } else {
           const step = Math.min(dist, a.speed * dt);
           const nx = a.sprite.x + (dx / dist) * step;
@@ -227,12 +238,12 @@ export class WildlifeManager {
           if (this.isObstacleNear(nx, ny)) {
             a.state = 'idle';
             a.timer = this.rng.realInRange(2.0, 4.0);
-            if (a.idleAnim) a.sprite.play(a.idleAnim, true);
+            if (a.idleAnim) this.playAnim(a.sprite, a.idleAnim);
           } else {
             a.sprite.x = Phaser.Math.Clamp(nx, a.bounds.minX, a.bounds.maxX);
             a.sprite.y = Phaser.Math.Clamp(ny, a.bounds.minY, a.bounds.maxY);
             a.sprite.setFlipX(dx > 0.5);
-            if (a.walkAnim) a.sprite.play(a.walkAnim, true);
+            if (a.walkAnim) this.playAnim(a.sprite, a.walkAnim);
           }
         }
       }

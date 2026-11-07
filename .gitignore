@@ -21,13 +21,14 @@ verify_output/
 /*.jpg
 
 # Raw & Heavy Asset Archives (Lokal belassen, niemals in Git)
-Assets/
-assets_raw/
-raw_assets/
-downloaded assets/
-Downloaded Assets/
-better assets/
-Spritesheets/
+/Assets/
+/assets_raw/
+/raw_assets/
+/downloaded assets/
+/Downloaded Assets/
+/better assets/
+/Spritesheets/
+!public/assets/**
 *.rar
 *.zip
 *.7z

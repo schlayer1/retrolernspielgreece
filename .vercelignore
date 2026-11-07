@@ -4,13 +4,14 @@ node_modules
 .cache
 
 # Raw Assets, Archives & Heavy Binaries
-Assets/
-assets_raw/
-raw_assets/
-downloaded assets/
-Downloaded Assets/
-better assets/
-Spritesheets/
+/Assets/
+/assets_raw/
+/raw_assets/
+/downloaded assets/
+/Downloaded Assets/
+/better assets/
+/Spritesheets/
+!public/assets/**
 *.rar
 *.zip
 *.7z
