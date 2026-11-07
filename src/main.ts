@@ -6,18 +6,21 @@ import { InteriorScene } from './scenes/InteriorScene';
 import { UIScene } from './scenes/UIScene';
 import { state } from './systems/GameState';
 
+export const GAME_W = 480;
+export const GAME_H = 270;
+
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
   parent: 'game',
+  width: GAME_W,
+  height: GAME_H,
   backgroundColor: '#0e1726',
   pixelArt: true,
   roundPixels: true,
   antialias: false,
   scale: {
-    mode: Phaser.Scale.RESIZE,
+    mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,
-    width: window.innerWidth,
-    height: window.innerHeight,
   },
   physics: {
     default: 'arcade',

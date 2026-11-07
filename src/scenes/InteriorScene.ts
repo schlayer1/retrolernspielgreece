@@ -31,12 +31,9 @@ export class InteriorScene extends Phaser.Scene {
     ESC: Phaser.Input.Keyboard.Key;
   };
   private hotspots: Hotspot[] = [];
-  private promptLabel!: Phaser.GameObjects.Text;
-  private roomWidth = 520;
-  private roomHeight = 360;
-  private facing: 'down' | 'up' | 'left' | 'right' = 'up';
-  private exitMatRect!: Phaser.Geom.Rectangle;
+  private exitMat!: { x: number; y: number; w: number; h: number };
   private isExiting = false;
+  private stepCooldown = 0;
 
   constructor() {
     super('InteriorScene');
@@ -53,31 +50,135 @@ export class InteriorScene extends Phaser.Scene {
   }
 
   public create(): void {
-    this.cameras.main.setBackgroundColor('#0c0a08');
+    const ROOM_W = 352;
+    const ROOM_H = 208;
+    const CX = 240;
+    const CY = 140;
+    const LEFT = CX - ROOM_W / 2;
+    const TOP = CY - ROOM_H / 2;
 
-    const cx = this.roomWidth / 2;
-    const cy = this.roomHeight / 2;
+    this.cameras.main.setBackgroundColor('#120e0a');
 
-    this.buildRoomGeometry(this.entryData.buildingId);
+    document.getElementById('interior-dom-overlay')?.remove();
+    const overlay = document.createElement('div');
+    overlay.id = 'interior-dom-overlay';
+    overlay.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:18;font-family:system-ui,sans-serif;';
+    document.body.appendChild(overlay);
 
+    const addDomTag = (rx: number, ry: number, text: string, bg = 'rgba(28,18,10,0.9)', border = '#e8c170', color = '#fef08a') => {
+      const el = document.createElement('div');
+      const pctX = (rx / 480) * 100;
+      const pctY = (ry / 270) * 100;
+      el.style.cssText = `
+        position:absolute;left:${pctX}%;top:${pctY}%;transform:translate(-50%,-50%);
+        background:${bg};border:1.5px solid ${border};color:${color};
+        padding:2px 8px;border-radius:999px;font-size:11px;font-weight:800;
+        white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,0.65);
+      `;
+      el.textContent = text;
+      overlay.appendChild(el);
+    };
+
+    const headerBanner = document.createElement('div');
+    headerBanner.style.cssText = `
+      position:absolute;left:50%;top:11%;transform:translate(-50%,-50%);
+      background:linear-gradient(180deg,rgba(42,26,12,0.95),rgba(24,14,6,0.95));
+      border:2px solid #e8c170;border-radius:8px;padding:4px 14px;text-align:center;
+      box-shadow:0 4px 14px rgba(0,0,0,0.75);
+    `;
+    headerBanner.innerHTML = `
+      <div style="color:#fde047;font-size:13px;font-weight:900;letter-spacing:0.4px;">${this.getRoomTitle(this.entryData.buildingId)}</div>
+      <div style="color:#e8dec5;font-size:10.5px;font-weight:700;">Antikes Griechenland · Innenraum · [E] Interagieren · [ESC] Verlassen</div>
+    `;
+    overlay.appendChild(headerBanner);
+
+    const g = this.add.graphics();
+    g.fillStyle(0x23170d, 1);
+    g.fillRect(LEFT - 10, TOP - 10, ROOM_W + 20, ROOM_H + 20);
+
+    const isStone = this.entryData.buildingId !== 'kerameikos_werkstatt';
+    for (let y = TOP; y < TOP + ROOM_H; y += 16) {
+      for (let x = LEFT; x < LEFT + ROOM_W; x += 16) {
+        const alt = ((x + y) / 16) % 2 === 0;
+        if (isStone) {
+          g.fillStyle(alt ? 0xd6cbb8 : 0xc7bba6, 1);
+        } else {
+          g.fillStyle(alt ? 0xa37852 : 0x926844, 1);
+        }
+        g.fillRect(x, y, 16, 16);
+        g.lineStyle(1, 0x57432d, 0.22);
+        g.strokeRect(x, y, 16, 16);
+      }
+    }
+
+    // Back wall header frieze
+    g.fillStyle(isStone ? 0x57534e : 0x5c3a21, 1);
+    g.fillRect(LEFT, TOP, ROOM_W, 34);
+    g.fillStyle(0xd97706, 0.6);
+    g.fillRect(LEFT, TOP + 30, ROOM_W, 4);
+    g.lineStyle(3, 0xe8c170, 0.9);
+    g.strokeRect(LEFT, TOP, ROOM_W, ROOM_H);
+
+    // Central runner carpet leading to altar/mentor
+    g.fillStyle(0x7c2d12, 0.92);
+    g.fillRect(CX - 22, TOP + 36, 44, ROOM_H - 44);
+    g.lineStyle(2, 0xfbbf24, 0.9);
+    g.strokeRect(CX - 22, TOP + 36, 44, ROOM_H - 44);
+
+    // 4 Authentic Doric/Ionic Marble Columns along the walls (NO fillCircle placeholders!)
+    const colKey = this.textures.exists('column_doric') ? 'column_doric' : 'column_ionic';
+    if (this.textures.exists(colKey)) {
+      this.add.image(LEFT + 24, TOP + 54, colKey).setScale(0.55).setDepth(TOP + 54);
+      this.add.image(LEFT + ROOM_W - 24, TOP + 54, colKey).setScale(0.55).setDepth(TOP + 54);
+      this.add.image(LEFT + 24, TOP + 148, colKey).setScale(0.55).setDepth(TOP + 148);
+      this.add.image(LEFT + ROOM_W - 24, TOP + 148, colKey).setScale(0.55).setDepth(TOP + 148);
+    }
+
+    // 4 Corner Torches with warm flickering glow
+    const torchCoords = [
+      [LEFT + 46, TOP + 42],
+      [LEFT + ROOM_W - 46, TOP + 42],
+      [LEFT + 46, TOP + ROOM_H - 22],
+      [LEFT + ROOM_W - 46, TOP + ROOM_H - 22],
+    ];
+    for (const [tx, ty] of torchCoords) {
+      const glow = this.add.circle(tx, ty, 30, 0xf59e0b, 0.22).setDepth(2);
+      this.tweens.add({
+        targets: glow,
+        alpha: { from: 0.14, to: 0.30 },
+        scale: { from: 0.92, to: 1.08 },
+        duration: 820 + Math.random() * 320,
+        yoyo: true,
+        repeat: -1,
+      });
+    }
+
+    this.buildRoomContents(this.entryData.buildingId, CX, CY, LEFT, TOP, ROOM_W, ROOM_H, addDomTag);
+
+    // Exit Mat at Bottom Center
+    this.exitMat = { x: CX, y: TOP + ROOM_H - 14, w: 56, h: 18 };
+    g.fillStyle(0xb91c1c, 1);
+    g.fillRect(this.exitMat.x - 26, this.exitMat.y - 8, 52, 14);
+    g.lineStyle(1.5, 0xfde047, 1);
+    g.strokeRect(this.exitMat.x - 26, this.exitMat.y - 8, 52, 14);
+    addDomTag(this.exitMat.x, this.exitMat.y + 12, '🚪 Ausgang zur Oberwelt (E / ESC)', 'rgba(127,29,29,0.92)', '#fca5a5', '#fef2f2');
+
+    // Player (strictly 16x32 at scale 1.0)
     const pKey = state.playerGender === 'female' ? 'player_greek_female' : 'player_greek_male';
     this.player = this.physics.add
-      .sprite(cx, this.roomHeight - 62, pKey, 12)
+      .sprite(CX, TOP + ROOM_H - 42, pKey, 12)
       .setScale(1.0)
-      .setDepth(50)
+      .setDepth(TOP + ROOM_H - 42)
       .setCollideWorldBounds(true);
 
     const body = this.player.body as Phaser.Physics.Arcade.Body;
-    body.setSize(12, 10);
-    body.setOffset(2, 22);
+    body.setSize(12, 10).setOffset(2, 22);
 
-    this.physics.world.setBounds(36, 52, this.roomWidth - 72, this.roomHeight - 84);
+    this.physics.world.setBounds(LEFT + 14, TOP + 36, ROOM_W - 28, ROOM_H - 44);
 
-    this.exitMatRect = new Phaser.Geom.Rectangle(cx - 28, this.roomHeight - 36, 56, 24);
-
-    this.cameras.main.centerOn(cx, cy - 12);
-    this.cameras.main.setZoom(1.85);
-    this.cameras.main.fadeIn(260, 0, 0, 0);
+    this.cameras.main.setZoom(1.0);
+    this.cameras.main.centerOn(CX, CY);
+    this.cameras.main.fadeIn(220, 0, 0, 0);
 
     if (this.input.keyboard) {
       this.cursors = this.input.keyboard.createCursorKeys();
@@ -91,29 +192,10 @@ export class InteriorScene extends Phaser.Scene {
       }) as typeof this.wasd;
     }
 
-    this.promptLabel = this.add
-      .text(cx, cy - 28, '', {
-        fontFamily: 'Georgia, serif',
-        fontSize: '10px',
-        color: '#fef08a',
-        backgroundColor: '#1e1b18ee',
-        padding: { x: 6, y: 3 },
-      })
-      .setOrigin(0.5)
-      .setDepth(200)
-      .setVisible(false);
-
-    this.add
-      .text(cx, 20, this.getRoomTitle(this.entryData.buildingId), {
-        fontFamily: 'Georgia, serif',
-        fontSize: '12px',
-        fontStyle: 'bold',
-        color: '#fde68a',
-        backgroundColor: '#1c1917dd',
-        padding: { x: 8, y: 3 },
-      })
-      .setOrigin(0.5)
-      .setDepth(190);
+    this.events.once('shutdown', () => {
+      document.getElementById('interior-dom-overlay')?.remove();
+      state.emit('prompt', '');
+    });
   }
 
   private getRoomTitle(id: InteriorEntryData['buildingId']): string {
@@ -127,371 +209,246 @@ export class InteriorScene extends Phaser.Scene {
     }
   }
 
-  private buildRoomGeometry(id: InteriorEntryData['buildingId']): void {
-    const g = this.add.graphics().setDepth(1);
-
-    const floorColor =
-      id === 'parthenon_cella'
-        ? 0xe7dfd1
-        : id === 'kerameikos_werkstatt'
-        ? 0x8a6443
-        : 0xd4c5a9;
-    const tileAlt =
-      id === 'parthenon_cella'
-        ? 0xd6cbb8
-        : id === 'kerameikos_werkstatt'
-        ? 0x785538
-        : 0xc2b295;
-
-    // 1. Marmor- / Tonfliesen-Boden
-    g.fillStyle(floorColor, 1);
-    g.fillRect(32, 44, this.roomWidth - 64, this.roomHeight - 72);
-
-    for (let y = 44; y < this.roomHeight - 28; y += 24) {
-      for (let x = 32; x < this.roomWidth - 32; x += 24) {
-        if (((x + y) / 24) % 2 === 0) {
-          g.fillStyle(tileAlt, 0.55);
-          g.fillRect(x, y, 24, 24);
-        }
-        g.lineStyle(1, 0x292524, 0.16);
-        g.strokeRect(x, y, 24, 24);
-      }
-    }
-
-    // Griechischer Mäander-Randstreifen
-    g.lineStyle(2, 0xb45309, 0.55);
-    g.strokeRect(44, 56, this.roomWidth - 88, this.roomHeight - 96);
-
-    // 2. Umfassungsmauern aus Kalkstein/Marmor
-    g.fillStyle(0x44403c, 1);
-    g.fillRect(20, 24, this.roomWidth - 40, 22);
-    g.fillRect(20, 24, 14, this.roomHeight - 44);
-    g.fillRect(this.roomWidth - 34, 24, 14, this.roomHeight - 44);
-    g.fillRect(20, this.roomHeight - 28, this.roomWidth - 40, 12);
-
-    // 3. Ausgangs-Teppich (exitMat) unten in der Mitte
-    const cx = this.roomWidth / 2;
-    g.fillStyle(0x991b1b, 1);
-    g.fillRect(cx - 28, this.roomHeight - 36, 56, 18);
-    g.lineStyle(2, 0xfbbf24, 1);
-    g.strokeRect(cx - 28, this.roomHeight - 36, 56, 18);
-
-    this.add
-      .text(cx, this.roomHeight - 27, '▼ Ausgang [E / ESC]', {
-        fontFamily: 'Georgia, serif',
-        fontSize: '9px',
-        color: '#fef08a',
-      })
-      .setOrigin(0.5)
-      .setDepth(15);
-
-    // 4. Dorische/Ionische Säulen & Fackeln
-    const pillarPositions = [
-      { x: 96, y: 110 },
-      { x: this.roomWidth - 96, y: 110 },
-      { x: 96, y: 230 },
-      { x: this.roomWidth - 96, y: 230 },
-    ];
-    for (const pos of pillarPositions) {
-      g.fillStyle(0xf5f5f4, 1);
-      g.fillCircle(pos.x, pos.y, 13);
-      g.lineStyle(2, 0xb45309, 0.8);
-      g.strokeCircle(pos.x, pos.y, 13);
-
-      const glow = this.add
-        .circle(pos.x, pos.y - 16, 18, 0xfbbf24, 0.22)
-        .setDepth(10);
-      this.tweens.add({
-        targets: glow,
-        alpha: { from: 0.14, to: 0.32 },
-        scale: { from: 0.92, to: 1.12 },
-        duration: 620 + Math.random() * 250,
-        yoyo: true,
-        repeat: -1,
-      });
-    }
-
-    // 5. Raumspezifische Ausstattung, 16x32 Mentor (Scale 1.0) & Didaktik-Hotspots
+  private buildRoomContents(
+    id: InteriorEntryData['buildingId'],
+    cx: number,
+    _cy: number,
+    left: number,
+    top: number,
+    w: number,
+    h: number,
+    addDomTag: (rx: number, ry: number, text: string, bg?: string, border?: string, color?: string) => void
+  ): void {
     if (id === 'parthenon_cella') {
-      // Gold-Elfenbein-Statue der Athena Parthenos & Säulen-Station
-      g.fillStyle(0x78350f, 1);
-      g.fillRect(cx - 38, 72, 76, 36);
-      g.lineStyle(2, 0xfacc15, 1);
-      g.strokeRect(cx - 38, 72, 76, 36);
-
       if (this.textures.exists('statue_athena_shrine')) {
-        this.add.image(cx, 78, 'statue_athena_shrine').setScale(0.55).setDepth(30);
+        this.add.image(cx, top + 48, 'statue_athena_shrine').setScale(0.55).setDepth(top + 48);
       }
-      this.add.image(155, 145, 'amphora_black_painted').setScale(0.9).setDepth(28);
-      this.add.image(this.roomWidth - 155, 145, 'column_doric').setScale(0.75).setDepth(28);
+      if (this.textures.exists('amphora_black_painted')) {
+        this.add.image(left + 78, top + 82, 'amphora_black_painted').setScale(0.85).setDepth(top + 82);
+      }
+      if (this.textures.exists('column_doric')) {
+        this.add.image(left + w - 78, top + 82, 'column_doric').setScale(0.6).setDepth(top + 82);
+      }
 
-      // Priesterin Pythia / Baumeister Phidias (strictly 16x32 at scale 1.0)
-      this.add.sprite(cx + 56, 118, 'npc_pythia', 0).setScale(1.0).setDepth(45);
-      this.add
-        .text(cx + 56, 96, 'Priesterin der Athene', {
-          fontFamily: 'Georgia, serif',
-          fontSize: '8px',
-          color: '#fde68a',
-          backgroundColor: '#1c1917cc',
-          padding: { x: 3, y: 1 },
-        })
-        .setOrigin(0.5)
-        .setDepth(46);
+      this.add.sprite(cx, top + 68, 'npc_pythia', 0).setScale(1.0).setDepth(top + 68);
+      addDomTag(cx, top + 46, '👑 Priesterin der Athene (E)', 'rgba(45,26,10,0.92)', '#fde047', '#fde047');
+
+      addDomTag(left + 78, top + 60, '🏺 Preisamphore (E)');
+      addDomTag(left + w - 78, top + 60, '🏛️ Säulenordnung (E)');
 
       this.hotspots.push(
         {
-          id: 'athena_altar',
+          id: 'athena_mentor',
           x: cx,
-          y: 112,
-          label: '[E] Säulenordnungen & Parthenon-Architektur untersuchen',
+          y: top + 70,
+          label: 'Priesterin der Athene ansprechen (E)',
           action: () => {
-            const st = STATIONS.find((s) => s.id === 'station_saeulenordnung') || STATIONS[3];
-            const w = window as unknown as { __openStation?: (id: string) => void };
-            if (w.__openStation && st) w.__openStation(st.id);
+            state.unlockLexicon('akropolis');
+            state.openDialog({
+              speaker: 'Priesterin der Athene (Parthenon)',
+              nodes: [
+                {
+                  text: 'Chaire im Parthenon auf der Akropolis! In dieser Cella wacht die monumentale Statue der Athena Parthenos aus Gold und Elfenbein über die Polis Athen und den Schatz des Attischen Seebundes.',
+                },
+              ],
+            });
           },
         },
         {
           id: 'helmet_relic',
-          x: 155,
-          y: 155,
-          label: '[E] 360°-Quelleninspektor: Korinthischer Bronzehelm & Preisamphore',
+          x: left + 78,
+          y: top + 82,
+          label: '360°-Quelleninspektor: Panathenäische Preisamphore (E)',
           action: () => {
-            const rel = RELICS.find((r) => r.id === 'relic_agamemnon') || RELICS[0];
-            const w = window as unknown as { __openArtifactInspector?: (id: string) => void };
-            if (w.__openArtifactInspector && rel) w.__openArtifactInspector(rel.id);
+            const rel = RELICS.find((r) => r.id === 'relic_amphora') || RELICS[0];
+            const win = window as unknown as { __openArtifactInspector?: (id: string) => void };
+            if (win.__openArtifactInspector && rel) win.__openArtifactInspector(rel.id);
           },
         },
         {
-          id: 'trireme_tactics',
-          x: this.roomWidth - 155,
-          y: 155,
-          label: '[E] Weihegeschenke von Salamis: Taktik-Tisch der Triere öffnen',
+          id: 'athena_altar',
+          x: left + w - 78,
+          y: top + 82,
+          label: 'Säulenordnungen & Parthenon-Architektur untersuchen (E)',
           action: () => {
-            const st = STATIONS.find((s) => s.id === 'station_salamis_triere') || STATIONS[4];
-            const w = window as unknown as { __openStation?: (id: string) => void };
-            if (w.__openStation && st) w.__openStation(st.id);
+            const st = STATIONS.find((s) => s.id === 'station_saeulenordnung') || STATIONS[3];
+            const win = window as unknown as { __openStation?: (id: string) => void };
+            if (win.__openStation && st) win.__openStation(st.id);
           },
-        },
+        }
       );
     } else if (id === 'kerameikos_werkstatt') {
-      // Töpferofen & Olivenöl-Amphorenlager im Kerameikos
-      g.fillStyle(0x9a3412, 1);
-      g.fillRect(cx - 42, 76, 84, 34);
-      g.lineStyle(2, 0xf97316, 1);
-      g.strokeRect(cx - 42, 76, 84, 34);
+      if (this.textures.exists('pottery_kiln')) {
+        this.add.image(left + 78, top + 82, 'pottery_kiln').setScale(0.75).setDepth(top + 82);
+      }
+      if (this.textures.exists('amphora_black_painted')) {
+        this.add.image(left + w - 78, top + 82, 'amphora_black_painted').setScale(0.85).setDepth(top + 82);
+      }
+      if (this.textures.exists('terracotta_pots')) {
+        this.add.image(left + 78, top + h - 54, 'terracotta_pots').setScale(0.75).setDepth(top + h - 54);
+      }
 
-      this.add.image(cx, 92, 'pottery_kiln').setScale(0.8).setDepth(30);
-      this.add.image(155, 160, 'amphora_black_painted').setScale(0.95).setDepth(28);
-      this.add.image(this.roomWidth - 155, 160, 'terracotta_pots').setScale(0.85).setDepth(28);
-
-      // Handwerker / Dorfältester Nikolaos (16x32 at scale 1.0)
-      this.add.sprite(cx - 56, 122, 'npc_nikolaos', 0).setScale(1.0).setDepth(45);
-      this.add
-        .text(cx - 56, 100, 'Töpfermeister Exekias', {
-          fontFamily: 'Georgia, serif',
-          fontSize: '8px',
-          color: '#fde68a',
-          backgroundColor: '#1c1917cc',
-          padding: { x: 3, y: 1 },
-        })
-        .setOrigin(0.5)
-        .setDepth(46);
+      this.add.sprite(cx, top + 66, 'npc_nikolaos', 0).setScale(1.0).setDepth(top + 66);
+      addDomTag(cx, top + 46, '🏺 Töpfermeister Exekias (E)', 'rgba(45,26,10,0.92)', '#fde047', '#fde047');
+      addDomTag(left + 78, top + 58, '🔥 3-Phasen-Brennofen (E)');
+      addDomTag(left + w - 78, top + 58, '🫒 Olivenpresse (E)');
 
       this.hotspots.push(
         {
           id: 'kiln_station',
-          x: cx,
-          y: 115,
-          label: '[E] Töpferofen im Kerameikos: Schwarzfigurigen 3-Phasen-Brand starten',
+          x: left + 78,
+          y: top + 82,
+          label: 'Töpferofen im Kerameikos: 3-Phasen-Tonbrand starten (E)',
           action: () => {
             const st = STATIONS.find((s) => s.id === 'station_kerameikos') || STATIONS[1];
-            const w = window as unknown as { __openStation?: (id: string) => void };
-            if (w.__openStation && st) w.__openStation(st.id);
+            const win = window as unknown as { __openStation?: (id: string) => void };
+            if (win.__openStation && st) win.__openStation(st.id);
           },
         },
         {
           id: 'olive_press_station',
-          x: 155,
-          y: 165,
-          label: '[E] Attische Hebel-Olivenpresse bedienen',
+          x: left + w - 78,
+          y: top + 82,
+          label: 'Attische Hebel-Olivenpresse bedienen (E)',
           action: () => {
             const st = STATIONS.find((s) => s.id === 'station_olivenpresse') || STATIONS[0];
-            const w = window as unknown as { __openStation?: (id: string) => void };
-            if (w.__openStation && st) w.__openStation(st.id);
+            const win = window as unknown as { __openStation?: (id: string) => void };
+            if (win.__openStation && st) win.__openStation(st.id);
           },
-        },
-        {
-          id: 'amphora_inspector',
-          x: this.roomWidth - 155,
-          y: 165,
-          label: '[E] 360°-Quelleninspektor: Panathenäische Preisamphore untersuchen',
-          action: () => {
-            const rel = RELICS.find((r) => r.id === 'relic_amphore') || RELICS[0];
-            const w = window as unknown as { __openArtifactInspector?: (id: string) => void };
-            if (w.__openArtifactInspector && rel) w.__openArtifactInspector(rel.id);
-          },
-        },
+        }
       );
     } else {
-      // Bouleuterion & Philosophenschule (Rat der 500, Ostrakismos & Akademie)
-      g.fillStyle(0x1e3a8a, 1);
-      g.fillRect(cx - 46, 76, 92, 34);
-      g.lineStyle(2, 0xfde047, 1);
-      g.strokeRect(cx - 46, 76, 92, 34);
+      if (this.textures.exists('pnyx_podium')) {
+        this.add.image(cx, top + 48, 'pnyx_podium').setScale(0.55).setDepth(top + 48);
+      }
+      if (this.textures.exists('library_scroll_rack')) {
+        this.add.image(left + 78, top + 82, 'library_scroll_rack').setScale(0.65).setDepth(top + 82);
+        this.add.image(left + w - 78, top + 82, 'library_scroll_rack').setScale(0.65).setDepth(top + 82);
+      }
 
-      this.add.image(155, 155, 'scroll_shelf').setScale(0.85).setDepth(28);
-      this.add.image(this.roomWidth - 155, 155, 'column_ionic').setScale(0.75).setDepth(28);
-
-      // Philosoph Sokrates (16x32 at scale 1.0)
-      this.add.sprite(cx + 54, 120, 'npc_sokrates', 0).setScale(1.0).setDepth(45);
-      this.add
-        .text(cx + 54, 98, 'Philosoph Sokrates', {
-          fontFamily: 'Georgia, serif',
-          fontSize: '8px',
-          color: '#fde68a',
-          backgroundColor: '#1c1917cc',
-          padding: { x: 3, y: 1 },
-        })
-        .setOrigin(0.5)
-        .setDepth(46);
+      this.add.sprite(cx, top + 66, 'npc_sokrates', 0).setScale(1.0).setDepth(top + 66);
+      addDomTag(cx, top + 46, '🦉 Philosoph Sokrates (E)', 'rgba(45,26,10,0.92)', '#fde047', '#fde047');
+      addDomTag(left + 78, top + 58, '🏺 Scherbengericht (E)');
+      addDomTag(left + w - 78, top + 58, '⚙️ Antikythera-Relikt (E)');
 
       this.hotspots.push(
         {
           id: 'ostrakismos_station',
-          x: cx,
-          y: 115,
-          label: '[E] Scherbengericht (Ostrakismos) & Griechisches Alphabet entziffern',
+          x: left + 78,
+          y: top + 82,
+          label: 'Scherbengericht (Ostrakismos) & Rat der 500 starten (E)',
           action: () => {
             const st = STATIONS.find((s) => s.id === 'station_ostrakismos') || STATIONS[2];
-            const w = window as unknown as { __openStation?: (id: string) => void };
-            if (w.__openStation && st) w.__openStation(st.id);
+            const win = window as unknown as { __openStation?: (id: string) => void };
+            if (win.__openStation && st) win.__openStation(st.id);
           },
         },
         {
-          id: 'ostrakon_inspector',
-          x: 155,
-          y: 160,
-          label: '[E] 360°-Quelleninspektor: Original-Ostrakon des Themistokles',
-          action: () => {
-            const rel = RELICS.find((r) => r.id === 'relic_eule') || RELICS[1];
-            const w = window as unknown as { __openArtifactInspector?: (id: string) => void };
-            if (w.__openArtifactInspector && rel) w.__openArtifactInspector(rel.id);
-          },
-        },
-        {
-          id: 'antikythera_inspector',
-          x: this.roomWidth - 155,
-          y: 160,
-          label: '[E] 360°-Quelleninspektor: Mechanismus von Antikythera untersuchen',
+          id: 'antikythera_relic',
+          x: left + w - 78,
+          y: top + 82,
+          label: '360°-Quelleninspektor: Mechanismus von Antikythera (E)',
           action: () => {
             const rel = RELICS.find((r) => r.id === 'relic_antikythera') || RELICS[3];
-            const w = window as unknown as { __openArtifactInspector?: (id: string) => void };
-            if (w.__openArtifactInspector && rel) w.__openArtifactInspector(rel.id);
+            const win = window as unknown as { __openArtifactInspector?: (id: string) => void };
+            if (win.__openArtifactInspector && rel) win.__openArtifactInspector(rel.id);
           },
-        },
+        }
       );
-    }
-
-    for (const hs of this.hotspots) {
-      const marker = this.add.circle(hs.x, hs.y, 8, 0xfacc15, 0.38).setDepth(25);
-      this.tweens.add({
-        targets: marker,
-        scale: { from: 0.85, to: 1.25 },
-        alpha: { from: 0.25, to: 0.6 },
-        duration: 750,
-        yoyo: true,
-        repeat: -1,
-      });
     }
   }
 
-  public update(): void {
-    if (this.isExiting || !this.player) return;
-
-    if (state.modal) {
-      this.player.setVelocity(0, 0);
+  public update(_time: number, delta: number): void {
+    if (!this.player || this.isExiting || state.modal) {
+      if (this.player?.body) (this.player.body as Phaser.Physics.Arcade.Body).setVelocity(0, 0);
       return;
     }
 
-    if (Phaser.Input.Keyboard.JustDown(this.wasd.ESC)) {
+    if (this.wasd && Phaser.Input.Keyboard.JustDown(this.wasd.ESC)) {
       this.exitToOverworld();
       return;
     }
 
-    const speed = 115;
+    const speed = 105;
     let vx = 0;
     let vy = 0;
 
-    if (this.cursors?.left.isDown || this.wasd?.A.isDown || (state.touch && state.touch.vector.x < -0.2)) vx = -speed;
-    else if (this.cursors?.right.isDown || this.wasd?.D.isDown || (state.touch && state.touch.vector.x > 0.2)) vx = speed;
+    if (this.cursors?.left.isDown || this.wasd?.A.isDown) vx = -speed;
+    else if (this.cursors?.right.isDown || this.wasd?.D.isDown) vx = speed;
 
-    if (this.cursors?.up.isDown || this.wasd?.W.isDown || (state.touch && state.touch.vector.y < -0.2)) vy = -speed;
-    else if (this.cursors?.down.isDown || this.wasd?.S.isDown || (state.touch && state.touch.vector.y > 0.2)) vy = speed;
+    if (this.cursors?.up.isDown || this.wasd?.W.isDown) vy = -speed;
+    else if (this.cursors?.down.isDown || this.wasd?.S.isDown) vy = speed;
 
     if (vx !== 0 && vy !== 0) {
       vx *= 0.7071;
       vy *= 0.7071;
     }
 
-    this.player.setVelocity(vx, vy);
+    const body = this.player.body as Phaser.Physics.Arcade.Body;
+    body.setVelocity(vx, vy);
+    this.player.setDepth(this.player.y);
 
-    const pKey = state.playerGender === 'female' ? 'player_greek_female' : 'player_greek_male';
+    const gPrefix = state.playerGender === 'female' ? 'greek-female' : 'greek-male';
     if (vx !== 0 || vy !== 0) {
-      if (Math.abs(vx) > Math.abs(vy)) {
-        this.facing = vx < 0 ? 'left' : 'right';
-      } else {
-        this.facing = vy < 0 ? 'up' : 'down';
+      const dir = Math.abs(vx) > Math.abs(vy) ? (vx > 0 ? 'right' : 'left') : vy > 0 ? 'down' : 'up';
+      this.player.anims.play(`walk-${gPrefix}-${dir}`, true);
+      this.stepCooldown -= delta;
+      if (this.stepCooldown <= 0) {
+        sfx.step('stone');
+        this.stepCooldown = 280;
       }
-      this.player.anims.play(`${pKey}-walk-${this.facing}`, true);
-      sfx.step('stone');
     } else {
-      this.player.anims.play(`${pKey}-idle-${this.facing}`, true);
+      this.player.anims.stop();
     }
 
-    const nearExit = Phaser.Geom.Rectangle.Contains(this.exitMatRect, this.player.x, this.player.y);
-    let activeHotspot: Hotspot | null = null;
-    let bestDist = 42;
-
-    for (const hs of this.hotspots) {
-      const d = Phaser.Math.Distance.Between(this.player.x, this.player.y, hs.x, hs.y);
-      if (d < bestDist) {
-        bestDist = d;
-        activeHotspot = hs;
+    let nearest: Hotspot | null = null;
+    let minDist = 42;
+    for (const h of this.hotspots) {
+      const d = Phaser.Math.Distance.Between(this.player.x, this.player.y, h.x, h.y);
+      if (d < minDist) {
+        minDist = d;
+        nearest = h;
       }
     }
 
-    if (activeHotspot) {
-      this.promptLabel.setText(activeHotspot.label);
-      this.promptLabel.setPosition(activeHotspot.x, activeHotspot.y - 22);
-      this.promptLabel.setVisible(true);
-      if (Phaser.Input.Keyboard.JustDown(this.wasd.E) || state.touch?.consumeAction()) {
-        sfx.click();
-        activeHotspot.action();
-      }
-    } else if (nearExit) {
-      this.promptLabel.setText('[E] Gebäude verlassen (Zurück nach Hellas)');
-      this.promptLabel.setPosition(this.roomWidth / 2, this.roomHeight - 48);
-      this.promptLabel.setVisible(true);
-      if (Phaser.Input.Keyboard.JustDown(this.wasd.E) || state.touch?.consumeAction()) {
+    const distExit = Phaser.Math.Distance.Between(this.player.x, this.player.y, this.exitMat.x, this.exitMat.y);
+    if (distExit < 26) {
+      state.emit('prompt', '🚪 [E] oder [ESC] drücken: Gebäude verlassen');
+      if (this.wasd && Phaser.Input.Keyboard.JustDown(this.wasd.E)) {
         this.exitToOverworld();
       }
+    } else if (nearest) {
+      state.emit('prompt', `🔍 ${nearest.label}`);
+      if (this.wasd && Phaser.Input.Keyboard.JustDown(this.wasd.E)) {
+        sfx.click();
+        nearest.action();
+      }
     } else {
-      this.promptLabel.setVisible(false);
+      state.emit('prompt', '');
     }
   }
 
   public exitToOverworld(): void {
     if (this.isExiting) return;
     this.isExiting = true;
-    sfx.door();
+    sfx.click();
+    document.getElementById('interior-dom-overlay')?.remove();
+    state.emit('prompt', '');
+
     this.cameras.main.fadeOut(220, 0, 0, 0);
-    this.time.delayedCall(230, () => {
+    this.cameras.main.once('camerafadeoutcomplete', () => {
       this.scene.stop('InteriorScene');
       this.scene.wake('World');
-      const world = this.scene.get('World') as Phaser.Scene & {
-        onReturnFromInterior?: (x: number, y: number) => void;
+      const worldScene = this.scene.get('World') as unknown as {
+        player?: Phaser.Physics.Arcade.Sprite;
+        labelLayer?: HTMLElement;
       };
-      world.onReturnFromInterior?.(this.entryData.returnX, this.entryData.returnY);
+      if (worldScene?.player) {
+        worldScene.player.setPosition(this.entryData.returnX, this.entryData.returnY);
+      }
+      if (worldScene?.labelLayer) {
+        worldScene.labelLayer.style.display = 'block';
+      }
     });
   }
 }
